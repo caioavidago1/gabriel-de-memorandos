@@ -1,0 +1,32 @@
+Extraia informações de ESTRUTURA DA TRANSAÇÃO:
+
+VALUATION:
+- currency: Moeda (apenas código: BRL, USD, MXN, EUR)
+- stake_pct: Percentual adquirido (APENAS NÚMERO decimal, ex: 100.0, 85.5, sem "%")
+- ev_mm: Enterprise Value (APENAS NÚMERO decimal em milhões, ex: 14.9, sem "M" ou "$")
+- equity_value_mm: Equity Value (APENAS NÚMERO decimal em milhões)
+- multiple_ev_ebitda: Múltiplo EV/EBITDA (APENAS NÚMERO decimal, ex: 6.5, 4.4, sem "x")
+- multiple_reference_period: Período de referência (texto, ex: "mai/25 LTM", "2024")
+
+ESTRUTURA DE PAGAMENTO:
+- cash_payment_mm: Pagamento à vista (APENAS NÚMERO decimal em milhões)
+- seller_note_mm: Valor da seller note (APENAS NÚMERO decimal em milhões, se mencionado)
+- seller_note_terms: Termos (texto descritivo, ex: "4 anos IPCA")
+- earnout_mm: Valor do earnout (APENAS NÚMERO decimal em milhões, se mencionado)
+- earnout_conditions: Condições do earnout (texto descritivo)
+- multiple_with_earnout: Múltiplo com earnout (APENAS NÚMERO decimal, se mencionado)
+
+OUTROS:
+- debt_equity_ratio: Proporção Dívida/Equity (APENAS NÚMERO decimal)
+- investor_opinion: Opinião do analista (texto descritivo, apenas para alguns tipos de memo)
+
+CAMPOS ESPECÍFICOS PARA SHORT MEMO - SECUNDÁRIO:
+- multiple_ev_fcf: Múltiplo EV/FCF (APENAS NÚMERO decimal, ex: 8.5, sem "x")
+- target_leverage: Alavancagem alvo Dívida/EBITDA (APENAS NÚMERO decimal, ex: 2.5)
+- acquisition_debt_mm: Dívida de aquisição (APENAS NÚMERO decimal em milhões)
+
+FORMATO CRÍTICO:
+- Todos os valores monetários: APENAS números decimais (ex: 14.9, não "14.9M" ou "$14.9M")
+- Todos os percentuais: APENAS números decimais (ex: 85.5, não "85.5%")
+- Todos os múltiplos: APENAS números decimais (ex: 6.5, não "6.5x")
+- Use null para campos não encontrados

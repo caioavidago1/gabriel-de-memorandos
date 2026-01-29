@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# VSCode
+.vscode/
+.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Virtualenv
+.venv/
+*.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDEs
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Logs
+*.log
+
+# Dados temporários
+*.tmp
+*.bak
+
+# Arquivos de credenciais
+.env
+
+# Dados de execução
+parsed_outputs/
+examples/memo_store.json
+
+# Cache de parsing
+.cache/
+
+# ChromaDB
+chroma_db/
+
+# LlamaIndex/LangChain
+.llama_index_cache/
+langchain.db
+
+# Testes
+.coverage
+htmlcov/
+.tox/
+pytest_cache/
+.cache/
+
+# Outros
+*.swp
+*.swo

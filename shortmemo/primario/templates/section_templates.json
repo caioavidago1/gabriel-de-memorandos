@@ -1,0 +1,203 @@
+{
+  "meta": {
+    "version": "1.0",
+    "memo_type": "Short Memo - Primário",
+    "last_updated": "2026-01-09",
+    "description": "Templates estruturados para Short Memo de investimento primário em fundos (gestora)",
+    "source_examples": [
+      "Short Memo - Shift Alpha II"
+    ],
+    "integration_notes": "Este JSON é complementar aos agentes existentes em shortmemo/primario/*.py. Os fields estão mapeados para os facts que os agentes esperam."
+  },
+  
+  "templates": {
+    "intro": {
+      "title": "Resumo da oportunidade",
+      "agent_file": "intro_agent.py",
+      "structure": {
+        "paragraphs": 3,
+        "description": "§1: Apresentação do documento e oportunidade | §2: Visão geral da gestora | §3: Fundo alvo e contexto Spectra"
+      },
+      "tone": "profissional, primeira pessoa plural, objetivo",
+      "facts_sections_used": {
+        "gestora": {
+          "mandatory": ["gestora_nome"],
+          "recommended": ["gestora_tipo", "gestora_aum_mm", "gestora_num_fundos"]
+        },
+        "fundo": {
+          "mandatory": ["fundo_nome"],
+          "recommended": ["fundo_target_mm", "fundo_vintage", "fundo_closing"]
+        },
+        "estrategia": {
+          "mandatory": [],
+          "recommended": ["estrategia_tese", "estrategia_num_investments_target"]
+        },
+        "spectra_context": {
+          "mandatory": [],
+          "recommended": ["spectra_relacionamento", "spectra_commitment_mm"]
+        }
+      },
+      "writing_guidelines": [
+        "PRIMEIRA FRASE: 'Este documento apresenta a oportunidade de investimento no {fundo_nome}, {ordem} fundo da {gestora_nome}.'",
+        "Mencionar se Spectra já é investidora de fundos anteriores",
+        "Descrever brevemente a gestora: tipo (operator led, growth equity, etc), foco, posicionamento",
+        "Mencionar tamanho alvo do fundo e número de ativos",
+        "Tom: primeira pessoa plural ('estamos avaliando', 'um eventual compromisso seria via Fundo VII')",
+        "NÃO usar bullets ou numerações - apenas parágrafos fluidos",
+        "Separar parágrafos com linha em branco"
+      ],
+      "examples": [
+        {
+          "context": "Primário - Operator-led PE",
+          "structure_highlight": "3 parágrafos: oportunidade → gestora → fundo",
+          "text": "Este documento apresenta a oportunidade de investimento no Shift Alpha II, segundo fundo da Shift Capital. A Spectra não é investidora do Alpha I. Um eventual compromisso no Alpha II seria via Fundo VII.\n\nGestora: Casa operator led focada em empresas brasileiras de médio porte. Se posicionam como um early stage PE, com investimentos entre R$10-15 mi em empresas com faturamento R$30-50 mi de faturamento.\n\nTese: Investir e gerir empresas capazes de entregar alto crescimento com produto e canal já definidos e comprovados. A gestora tem alocado capital mirando HP mais longos (6-7 anos de caso base), o que é um ponto de atenção para o Fundo VII.\n\nFundo: Alpha II em captação, com objetivo de primeiro closing de R$150 mi até março 2026 e portfólio concentrado em ~6 a 7 ativos. O fundo Alpha I foi um fundo de R$90 mi e contou com mais R$48 mi em co-investimento no período. Anterior ao fundo I, a gestora fazia investimentos deal by deal e investiu R$79 mi."
+        }
+      ]
+    },
+    
+    "gestora": {
+      "title": "Gestora, time e forma de atuação",
+      "agent_file": "gestora_agent.py",
+      "structure": {
+        "paragraphs": "3-4",
+        "description": "§1: Posicionamento de mercado | §2: Estilo de atuação | §3: Percepção dos fundadores | §4: Time e equipe (opcional)"
+      },
+      "tone": "analítico, objetivo, baseado em evidências",
+      "facts_sections_used": {
+        "gestora": {
+          "mandatory": ["gestora_nome"],
+          "recommended": ["gestora_tipo", "gestora_filosofia_investimento", "gestora_socios_principais", "gestora_ano_fundacao"]
+        },
+        "qualitative": {
+          "mandatory": [],
+          "recommended": ["competitive_advantages", "value_creation_plan"]
+        }
+      },
+      "writing_guidelines": [
+        "Descrever posicionamento competitivo da gestora (nicho entre VC e PE, etc)",
+        "Explicar estilo de atuação (operator led, hands-on, board seats, etc)",
+        "Mencionar percepção de fundadores investidos (referências, se disponível)",
+        "Destacar experiência e credibilidade do time",
+        "Quantificar quando possível: anos de experiência, número de deals, etc",
+        "Tom profissional e crítico",
+        "NÃO usar bullets - apenas parágrafos fluidos"
+      ],
+      "examples": [
+        {
+          "context": "Gestora operator-led",
+          "text": "Posicionamento: O posicionamento das companhias é um dos principais diferenciais da Shift, uma vez que atua em um meio campo onde VCs e PEs não exploram. Nesta esfera, fazem investimentos em empresas já com tamanho e receita sólidas mas ainda longe do ponto de entrada de um fundo como Treecorp, ainda com alto crescimento e necessidade de profissionalização.\n\nEstilo: A Shift conduz seus investimentos no formato operator led, se envolvendo diretamente em estratégia e execução. Atua como parceiro recorrente de discussão com fundadores, menos como board apenas financeiro, podendo ocupar cadeiras de liderança nas empresas em situações específicas em que entende que o retorno potencial compensa o tempo do sócio que será alocado para isso. A experiência que tiveram como operadores em outros investimentos traz a credibilidade com os empreendedores nos momentos de discussão.\n\nPercepção dos fundadores: O fundador da Zerezes relata que a Shift respeita a experiência empreendedora, acompanhou o dia a dia em momentos de pressão e ajudou a tomar decisões não óbvias à época. Vê Fernando como mentor e valoriza o uso de aprendizados de outras investidas e de referências de fundos de growth. Ainda conversaremos com outros empreendedores investidos, mas achamos interessante que a questão \"operator led\" não se sobrepôs a uma visão positiva do time da companhia investida, o que vemos com bons olhos."
+        }
+      ]
+    },
+    
+    "portfolio": {
+      "title": "Portfolio Atual",
+      "agent_file": "portfolio_agent.py",
+      "structure": {
+        "format": "hierárquico por fundo",
+        "description": "Para cada fundo: introdução do fundo → lista de empresas/deals com histórico, performance e retornos"
+      },
+      "tone": "quantitativo, factual, detalhado",
+      "facts_sections_used": {
+        "gestora": {
+          "mandatory": [],
+          "recommended": ["gestora_track_record"]
+        }
+      },
+      "writing_guidelines": [
+        "Organizar por fundo (deal by deal, Fundo I, Fundo II, etc)",
+        "Para cada fundo: tamanho, vintage, status, % investido, MOIC marcado",
+        "Para cada empresa/deal: nome, data investimento, valor investido, receita atual vs entrada, EBITDA atual vs entrada, múltiplo marcação, MOIC, TIR, status (ativo/desinvestido)",
+        "Usar formato: 'Empresa (data, valor investido): descrição breve. Receita passou de X para Y. EBITDA saiu de X para Y. Marcam a Zx EBITDA, resultando em Wx MOIC e V% TIR.'",
+        "Destacar deals de destaque (exits, alta performance)",
+        "Mencionar deals problemáticos ou em turnaround",
+        "Tom objetivo e transparente sobre performance",
+        "Usar bullets para listar empresas dentro de cada fundo"
+      ],
+      "examples": [
+        {
+          "context": "Portfolio com deal by deal e fundo",
+          "text": "### 3.1 Deal by Deal\n\nAntes de captar o seu primeiro fundo, a Shift realizou os seguintes club deals, ainda sem saídas.\n\n- Bluefit (jun/18, rede de academias low cost): investimento de R$0,4 mi que fizeram ao longo da estruturação do que se tornaria o grupo de franquias mais rentável da Bluefit. Foram comprados pela rede em uma operação de troca de ações que levou o João, sócio da Shift, a ocupar o cargo de CEO da Bluefit até a entrada do Mubadala. Receita no momento da troca de ações era de R$88 mi e fecharão o ano com R$620 mi e EBITDA atual de R$115 mi. Marcam a 7,7x EBITDA, resultando em 199,2x MOIC e 109% TIR bruta em reais.\n\n- Kovi / Moove (jun/19, plataforma de mobilidade para motoristas de aplicativos): Investimento de R$26,4 mi. Receita passou de R$80 mi para R$661 mi. EBITDA saiu de R$17 mi negativo para R$50 mi positivo. Marcam a ~2,4x Receita (valor da fusão com a Moove), resultando em 1,3x MOIC e 6% TIR.\n\n### 3.2 Alpha I\n\nAlpha I é o principal \"laboratório\" para avaliar a gestora. O Fundo é um veículo de R$90 mi captado ao final de '22. Em 3T25, ~57% do capital está investido entre Skelt (nova rodada), Zerezes, Acquion e Regera. O MOIC está marcado próximo de 1,7x em menos de 2 anos de HP médio. O fundo também ainda não teve saídas. Abaixo trazemos mais detalhes sobre os primeiros 4 deals do fundo.\n\n#### Skelt\n\nSet/23 | R$13,5 mi investidos | R$39,9 mi de NAV, 10,3x EBITDA | 74%/3,0x (TIR/MOIC brutos)\n\nA tese de investimento foi em uma plataforma de marcas de skincare e bodycare, já com os primeiros passos no varejo físico, saindo de DTC digital para estratégia omnicanal, com fábrica própria. Receita passou de R$115 mi para R$430 mi desde a entrada. EBITDA saiu de R$10 mi para R$55 mi, com crescimento forte, mas com pressão de margem e maior complexidade de canais."
+        }
+      ]
+    },
+    
+    "fundo_atual": {
+      "title": "Fundo que Estamos Investindo",
+      "agent_file": "fundo_atual_agent.py",
+      "structure": {
+        "paragraphs": "2-3",
+        "description": "§1: Tamanho alvo, número de ativos, estratégia de alocação | §2: Ideia do fundo e diferenciação | §3: Implicações e riscos (opcional)"
+      },
+      "tone": "objetivo, analítico, equilibrado",
+      "facts_sections_used": {
+        "fundo": {
+          "mandatory": ["fundo_nome", "fundo_target_mm"],
+          "recommended": ["fundo_hard_cap_mm", "fundo_captado_mm", "fundo_closing"]
+        },
+        "estrategia": {
+          "mandatory": ["estrategia_num_investments_target"],
+          "recommended": ["estrategia_tese", "estrategia_ticket_min_mm", "estrategia_ticket_max_mm", "estrategia_tipo_participacao"]
+        }
+      },
+      "writing_guidelines": [
+        "Mencionar tamanho alvo e número de ativos planejados",
+        "Descrever estratégia de alocação (ex: '1 ou 2 casos oportunísticos + 4-5 casos growth minoritário')",
+        "Explicar ideia do fundo e como replica playbook anterior",
+        "Mencionar implicações: cheques maiores, necessidade de equipe, etc",
+        "Tom equilibrado: oportunidades e riscos",
+        "NÃO usar bullets - apenas parágrafos fluidos"
+      ],
+      "examples": [
+        {
+          "context": "Fundo Alpha II",
+          "text": "O mandato é um fundo de R$150 mi alvo, com ~6 a 7 ativos. A gestora quer 1 ou 2 casos mais oportunísticos de construção (perfil Acquion/Regera) e 4 ou 5 casos de growth minoritário ativo (perfil Skelt/Zerezes).\n\nNo Alpha II, a ideia é basicamente replicar o playbook do Alpha I, com poucos ativos, estruturas de aquisição, governança e atuação operator led. Neste formato, ter 6 a 7 ativos em um fundo de R$150 mi significa cheques por empresa ligeiramente maiores do que fizeram no fundo 1. Isso não muda o estágio em que investem, apenas que ficarão com maior stake inicial. Além disso, atingirão um patamar de transações que exigirá da casa continuar desenvolvendo equipe para monitoramento dos investimentos feitos, o que adiciona um risco à análise."
+        }
+      ]
+    }
+  },
+  
+  "global_guidelines": {
+    "formatting": {
+      "font": "Aptos Narrow 10-11pt",
+      "spacing": "1.0-1.15 entrelinhas",
+      "margins": "2.0-2.5cm",
+      "emphasis": "**negrito** para gestora, fundos, empresas, valores-chave"
+    },
+    "tone": {
+      "perspective": "primeira pessoa plural ('estamos avaliando', 'entendemos')",
+      "style": "analítico, objetivo, data-driven, balanceado",
+      "avoid": [
+        "Linguagem promocional",
+        "Superlativos sem fundamento",
+        "Generalizações vagas",
+        "Jargões sem contexto"
+      ],
+      "prefer": [
+        "Dados quantitativos sempre",
+        "Comparações temporais (YoY, CAGR)",
+        "Evidências factuais",
+        "Tom equilibrado (upside E riscos)"
+      ]
+    },
+    "data_quality": {
+      "precision": "1 casa decimal para R$ mm, 1-2 casas para %",
+      "dates": "formato brasileiro (ex: dez/24, 2T25)",
+      "sources": "citar fonte quando dados de mercado",
+      "gaps": "ser transparente ('ainda em discussão', 'não auditado')"
+    },
+    "integration_with_agents": {
+      "usage": "Este JSON serve como REFERÊNCIA e VALIDAÇÃO para os agentes existentes",
+      "when_to_use": [
+        "Validar se facts extraídos têm campos necessários",
+        "Verificar cobertura de fields antes de geração",
+        "Enriquecer prompts com exemplos estruturados",
+        "QA pós-geração: comparar output com guidelines"
+      ],
+      "when_not_to_use": [
+        "NÃO substituir lógica dos agentes existentes",
+        "NÃO sobrescrever prompts hard-coded nos agentes"
+      ]
+    }
+  }
+}

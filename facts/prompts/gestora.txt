@@ -1,0 +1,41 @@
+Extraia informações de GESTORA (GP do fundo):
+
+CAMPOS OBRIGATÓRIOS (campos do schema):
+
+**Dados Gerais:**
+- gestora_nome: Nome completo e oficial da gestora/GP
+- gestora_ano_fundacao: Ano de fundação da gestora (número inteiro, formato YYYY)
+- gestora_localizacao: Cidade/Estado da sede principal
+- gestora_tipo: Tipo de investidor/gestora (ex: Operator-led PE, Growth equity, Venture capital)
+- gestora_aum_mm: AUM total em todas as estratégias (APENAS NÚMERO decimal em R$ MM ou US$ MM)
+
+**Estrutura:**
+- gestora_num_fundos: Número total de fundos levantados até hoje (APENAS NÚMERO inteiro)
+
+**Sócios e Filosofia:**
+- gestora_socios_principais: Sócios/GPs principais da gestora (texto)
+  * Incluir: nomes, experiência prévia, investment committee quando mencionado
+- gestora_filosofia_investimento: Filosofia de investimento da gestora (texto descritivo)
+  * Incluir: abordagem, estratégia, diferencial competitivo
+
+INSTRUÇÕES:
+1. Busque informações em TODAS as seções do documento (executive summary, team, track record, appendix)
+2. Para valores monetários, sempre especifique a moeda no contexto (R$ ou US$)
+3. Para percentuais e múltiplos mencionados no track_record, inclua no texto descritivo
+4. Se um campo não for encontrado, retorne null (não invente dados)
+5. Track record: priorize dados consolidados de todos os fundos
+6. Time: foque em experiência relevante em PE/VC
+
+FORMATO CRÍTICO:
+- Valores monetários: APENAS números decimais (ex: 850.0, não "850M" ou "R$ 850M")
+- Anos: APENAS números inteiros (ex: 2018)
+- Contagens: APENAS números inteiros (ex: 5, não "5 fundos")
+- Use null para campos não encontrados
+
+EXEMPLOS:
+- gestora_nome: "Shift Capital Partners"
+- gestora_tipo: "Operator-led PE"
+- gestora_aum_mm: 850.0
+- gestora_num_fundos: 3
+- gestora_socios_principais: "João Silva (ex-Partner Advent) e Maria Santos (ex-Managing Director Warburg Pincus)"
+- gestora_filosofia_investimento: "Foco em empresas B2B de meio campo, combinando expertise operacional com capital para acelerar crescimento"

@@ -1,0 +1,20 @@
+Extraia RETORNOS ESPERADOS:
+
+MÉTRICAS:
+- irr_pct: TIR projetada (APENAS NÚMERO decimal, ex: 36.0, 42.5, sem "%")
+- moic: Multiple on Invested Capital (APENAS NÚMERO decimal, ex: 3.9, 5.0, sem "x")
+- holding_period_years: Período de holding (APENAS NÚMERO inteiro em anos, ex: 5)
+- entry_multiple: Múltiplo EV/EBITDA de entrada (APENAS NÚMERO decimal, ex: 6.5, sem "x")
+- returns_commentary: Comentários sobre retornos e sensibilidades (texto descritivo)
+
+CAMPOS ESPECÍFICOS PARA SHORT MEMO - SECUNDÁRIO:
+- fcf_yield_pct: FCF yield (APENAS NÚMERO decimal, ex: 12.5, sem "%")
+- dividend_recaps: Dividend recaps planejados (texto descritivo, ex: "Dividend recap de R$ 50m planejado para 2025")
+
+FORMATO CRÍTICO:
+- TIR: APENAS número decimal (ex: 36.0, não "36%" ou "36.0%")
+- MOIC: APENAS número decimal (ex: 3.9, não "3.9x")
+- Holding: APENAS número inteiro (ex: 5)
+- Múltiplos: APENAS número decimal (ex: 6.5, não "6.5x")
+- Use null para campos não encontrados
+- Se houver ranges, pegue o valor base/médio

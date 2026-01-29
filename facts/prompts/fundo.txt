@@ -1,0 +1,42 @@
+Extraia informações do FUNDO (fundo primário sendo analisado):
+
+CAMPOS OBRIGATÓRIOS (campos do schema):
+
+**Identificação:**
+- fundo_nome: Nome completo e oficial do fundo
+- fundo_vintage: Ano do vintage (APENAS NÚMERO inteiro, ex: 2024)
+- fundo_moeda: Moeda do fundo (texto, ex: "USD", "BRL", "EUR")
+- fundo_closing: Status/número do closing (texto, ex: "Primeiro", "Segundo", "Final")
+
+**Tamanho e Estrutura:**
+- fundo_target_mm: Target size do fundo (APENAS NÚMERO decimal em MM da moeda do fundo)
+- fundo_hard_cap_mm: Hard cap (limite máximo, APENAS NÚMERO decimal em MM)
+- fundo_captado_mm: Valor já captado até o momento (APENAS NÚMERO decimal em MM, se mencionado)
+
+**Prazos:**
+- fundo_periodo_investimento_anos: Período de investimento (APENAS NÚMERO decimal em anos)
+- fundo_vida_total_anos: Vida total do fundo (APENAS NÚMERO decimal em anos)
+
+**Commitment Spectra (se mencionado):**
+- fundo_commitment_spectra_mm: Commitment da Spectra (APENAS NÚMERO decimal em MM)
+- fundo_commitment_spectra_pct: Commitment da Spectra como % do target (APENAS NÚMERO decimal)
+
+INSTRUÇÕES:
+1. Busque em seções: fund terms, economics, structure, appendix
+2. Para valores monetários, sempre especifique a moeda no contexto
+3. Se um campo não for encontrado, retorne null
+4. Closing: pode ser "Primeiro", "Segundo", "Final" ou número específico
+
+FORMATO CRÍTICO:
+- Valores monetários: APENAS números decimais (ex: 300.0, não "300M" ou "US$ 300M")
+- Anos: APENAS números inteiros (ex: 2024)
+- Percentuais: APENAS números decimais (ex: 5.0, não "5%")
+- Períodos em anos: APENAS números decimais (ex: 5.0)
+- Use null para campos não encontrados
+
+EXEMPLOS:
+- fundo_nome: "Shift Alpha Fund III"
+- fundo_vintage: 2024
+- fundo_target_mm: 300.0
+- fundo_periodo_investimento_anos: 5.0
+- fundo_vida_total_anos: 10.0

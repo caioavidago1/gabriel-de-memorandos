@@ -1,0 +1,42 @@
+Extraia informações de CONTEXTO SPECTRA (racional interno para investimento):
+
+CAMPOS OBRIGATÓRIOS (campos do schema):
+
+**Relacionamento:**
+- spectra_relacionamento: Histórico de relacionamento da Spectra com a gestora (texto)
+  * Incluir: anos de conhecimento, interações prévias, experiência em deals anteriores
+
+**Co-investidores:**
+- spectra_coinvestidores: Outros LPs relevantes no fundo (texto)
+  * Apenas nomes relevantes/institucionais (não todos)
+
+**Estratégia de Alocação:**
+- spectra_allocation_strategy: Como esse investimento se encaixa na estratégia de alocação da Spectra (texto)
+  * Incluir: alinhamento estratégico, encaixe no portfólio, diversificação, timing
+
+**Due Diligence:**
+- spectra_due_diligence: Resumo do processo de due diligence (texto)
+  * Incluir: diligência prévia realizada, calls com portfolio companies, validações
+
+**Termos Negociados:**
+- spectra_termos_negociados: Termos específicos negociados pela Spectra (texto)
+- spectra_fees_terms: Management fee, carry, hurdle rate e outros termos econômicos (texto)
+- spectra_governance: Direitos de governance (LPAC, approval rights, etc) (texto)
+
+INSTRUÇÕES:
+1. Estas informações podem NÃO estar no documento externo - podem ser conhecimento interno Spectra
+2. Se o documento é externo (pitch deck GP), muitos campos podem retornar null
+3. Relacionamento: capturar histórico concreto (anos, interações, performance anterior)
+4. Co-investors: apenas nomes relevantes/institucionais (não todos)
+5. Se um campo não for encontrado ou não aplicável, retorne null
+
+OBSERVAÇÃO IMPORTANTE:
+Este prompt é projetado para documentos INTERNOS Spectra (memos de análise, notas de IC).
+Em documentos EXTERNOS (pitch decks de GPs), a maioria destes campos retornará null.
+
+EXEMPLOS:
+- spectra_relacionamento: "João (Spectra) conhece GP founders desde 2018. Referências positivas de LPs do Fund II (IRR 28%)."
+- spectra_coinvestidores: "Softbank, Kaszek Ventures, Valor Capital"
+- spectra_allocation_strategy: "Alinhado com tese de digitalização SMB e expansão LATAM. Complementa portfólio pesado em buyout. Aumentaria exposição SaaS B2B de 15% para 25% do portfólio."
+- spectra_due_diligence: "Calls com 3 portfolio companies do Fund II, review de legal docs, validação de track record com auditor independente"
+- spectra_fees_terms: "2% mgmt fee (vs. 2-2.5% mercado), 20% carry com hurdle 8%. GP commit de 3% (US$ 9m)."

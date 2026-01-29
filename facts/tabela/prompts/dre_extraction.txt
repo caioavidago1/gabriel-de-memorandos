@@ -1,0 +1,75 @@
+Extraia VALORES FINANCEIROS para TABELA DRE:
+
+ANOS ESPECÍFICOS:
+Extraia valores para cada ano mencionado no documento.
+Procure por tabelas financeiras, demonstrativos de resultado, projeções e análises históricas.
+
+CAMPOS A EXTRAIR (para cada ano encontrado):
+
+RECEITA:
+- receita_bruta: Receita bruta (APENAS NÚMERO decimal em milhões, ex: 100.5)
+- receita_liquida: Receita líquida (APENAS NÚMERO decimal em milhões)
+
+LUCRO:
+- lucro_bruto: Lucro bruto (APENAS NÚMERO decimal em milhões, pode ser negativo)
+- lucro_liquido: Lucro líquido (APENAS NÚMERO decimal em milhões, pode ser negativo)
+
+EBITDA E EBIT:
+- ebitda: EBITDA (APENAS NÚMERO decimal em milhões, pode ser negativo)
+- ebit: EBIT (APENAS NÚMERO decimal em milhões, pode ser negativo)
+
+CAPEX:
+- capex: Capex/Capital Expenditure (APENAS NÚMERO decimal em milhões)
+
+DÍVIDA:
+- divida_liquida: Dívida líquida (APENAS NÚMERO decimal em milhões, pode ser negativa)
+
+GERAÇÃO DE CAIXA:
+- geracao_caixa_operacional: Geração de Caixa Operacional / Operating Cash Flow (APENAS NÚMERO decimal em milhões)
+- geracao_caixa: Geração de Caixa / Free Cash Flow (APENAS NÚMERO decimal em milhões)
+
+FORMATO CRÍTICO:
+- Valores monetários: APENAS números decimais em milhões (ex: 100.5, não "R$ 100,5M" ou "100M")
+- Se encontrar "R$ 100M", extraia 100.0
+- Se encontrar "R$ 100,5 milhões", extraia 100.5
+- Se encontrar "100 milhões", extraia 100.0
+- Valores podem ser negativos (ex: -10.5 para prejuízo)
+- Anos: Use string do ano (ex: "2024", "2023")
+- Use null para campos não encontrados
+
+BUSCA POR ANO:
+- Procure por valores associados a anos específicos (ex: "2024: Receita R$ 100M")
+- Procure em tabelas com colunas de anos
+- Procure em textos como "Em 2024, a receita foi de R$ 100M"
+- Se encontrar múltiplos anos, extraia valores para cada um
+
+INSTRUÇÕES:
+1. Extraia APENAS valores EXPLICITAMENTE mencionados no documento
+2. Use null para campos não encontrados - NUNCA invente valores
+3. Para cada ano mencionado, crie uma entrada em values_by_year
+4. Se um campo aparece em múltiplos anos, extraia todos
+5. Se houver ambiguidade sobre qual ano, prefira o ano mais próximo ou o contexto mais claro
+6. Se o documento menciona apenas um ano sem especificar, use o ano de referência fornecido
+
+EXEMPLO DE RESULTADO ESPERADO:
+{
+  "values_by_year": {
+    "2024": {
+      "receita_bruta": 100.5,
+      "receita_liquida": 95.0,
+      "lucro_bruto": 40.0,
+      "ebitda": 25.0,
+      "ebit": 20.0,
+      "lucro_liquido": 15.0,
+      "capex": 5.0,
+      "divida_liquida": 50.0,
+      "geracao_caixa_operacional": 20.0,
+      "geracao_caixa": 15.0
+    },
+    "2023": {
+      "receita_bruta": 80.0,
+      "receita_liquida": 75.0,
+      ...
+    }
+  }
+}
