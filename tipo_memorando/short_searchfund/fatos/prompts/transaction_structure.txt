@@ -1,0 +1,65 @@
+Extraia informações de ESTRUTURA DA TRANSAÇÃO:
+
+VALUATION:
+- currency: Moeda (apenas código: BRL, USD, MXN, EUR)
+- stake_pct: Percentual adquirido (APENAS NÚMERO decimal, ex: 100.0, 85.5, sem "%")
+  * Procure por: "100% do equity", "participação de X%", "adquirindo X%"
+- ev_mm: Enterprise Value (APENAS NÚMERO decimal em milhões, ex: 14.9, sem "M" ou "$")
+- equity_value_mm: Equity Value (APENAS NÚMERO decimal em milhões)
+  * Procure por: "equity de R$ Xm", "Equity Value", "EqV", "por US$ Xm"
+- multiple_ev_ebitda: Múltiplo EV/EBITDA (APENAS NÚMERO decimal, ex: 6.5, 4.4, sem "x")
+  * Procure por: "Xx EBITDA", "múltiplo de entrada", "4,4x", "6,5x"
+- multiple_reference_period: Período de referência (texto, ex: "mai/25 LTM", "2024", "2024E")
+  * Procure por: "EBITDA 2024", "LTM jun/24", "25E"
+
+ESTRUTURA DE PAGAMENTO:
+- total_transaction_value_mm: Valor total da transação incluindo step-up e custos (APENAS NÚMERO decimal em milhões)
+  * Procure por: "valor total da transação chega a", "incluindo custos de transação, search capital e step-up", "valor total de X", "total da transação de X", "US$ 10m" (quando for o total)
+  * Exemplo: "o valor total da transação chega a US$ 10m" → total_transaction_value_mm: 10
+- cash_payment_mm: Pagamento à vista (APENAS NÚMERO decimal em milhões)
+  * Procure por: "à vista", "R$ Xm à vista", "pagamento à vista de X", "cash", "72 à vista"
+- cash_pct_total: Percentual do total pago à vista (APENAS NÚMERO decimal, ex: 60.0, sem "%")
+  * Procure por: "X% à vista", "estruturados em X% à vista", "60% à vista", "% do total à vista"
+  * CALCULE se tiver cash_payment_mm e total: cash_pct_total = (cash_payment_mm / total_transaction_value_mm) * 100
+  * Exemplo: "estruturados em 60% à vista e 40% via acquisition debt" → cash_pct_total: 60
+- equity_cash_mm: Equity à vista em milhões (quando detalhado separadamente; senão pode ser igual a cash_payment_mm)
+- seller_note_mm: Valor da seller note (APENAS NÚMERO decimal em milhões, se mencionado)
+- seller_note_pct_total: Percentual do total correspondente à seller note (APENAS NÚMERO decimal, sem "%")
+  * Procure por: "X% seller note", "seller note representa X%"
+- seller_note_tenor_years: Prazo da seller note em anos (APENAS NÚMERO decimal)
+  * Procure por: "4 anos", "prazo de X anos", "até 2029"
+- seller_note_index: Indexador da seller note (texto, ex: CDI, IPCA)
+- seller_note_frequency: Periodicidade de pagamento (texto, ex: mensal, trimestral)
+- seller_note_grace: Carência da seller note (texto, se aplicável)
+- seller_note_terms: Termos (texto descritivo, ex: "4 anos IPCA")
+- earnout_mm: Valor do earnout (APENAS NÚMERO decimal em milhões, se mencionado)
+  * Procure por: "earnout de", "até R$ Xm em earnout", "Max. earnout of X"
+- earnout_conditions: Condições do earnout (texto descritivo, extraia o texto completo)
+- earnout_timeline: Timeline/período ou ano de pagamento do earnout (texto)
+  * Procure por: "3 annual installments", "pagamento em 2030", "beginning in 2025"
+- step_up_mm: Step-up em milhões (APENAS NÚMERO decimal, se mencionado)
+  * Procure por: "step-up", "incluindo step-up na transação"
+- multiple_with_earnout: Múltiplo com earnout (APENAS NÚMERO decimal, se mencionado)
+- multiple_total: Múltiplo total (x EBITDA) quando aplicável (APENAS NÚMERO decimal)
+  * Procure por: "4,9x EBITDA 2024 ou 3,6x EBITDA 2025", "múltiplo total", "considerando custos", "valor total representa Xx"
+  * Exemplo: "US$ 10m (4,9x EBITDA 2024 ou 3,6x EBITDA 2025)" → multiple_total: 4.9 (ou 3.6 se for o cenário alternativo)
+
+DÍVIDA DE AQUISIÇÃO (se mencionada):
+- acquisition_debt_mm: Dívida de aquisição (APENAS NÚMERO decimal em milhões)
+  * Procure por: "acquisition debt", "40% via acquisition debt", "dívida de aquisição"
+- acquisition_debt_rate: Taxa do acquisition debt (texto: % ou índice + spread)
+- acquisition_debt_tenor_years: Prazo em anos (APENAS NÚMERO decimal)
+- acquisition_debt_institution: Instituição (banco/fundo) se conhecido (texto)
+  * Procure por: "termos ainda estão em negociação", "em negociação"
+- leverage_resulting_x: Alavancagem resultante (x Net Debt/EBITDA) (APENAS NÚMERO decimal)
+
+OUTROS:
+- debt_equity_ratio: Proporção Dívida/Equity (APENAS NÚMERO decimal)
+- investor_opinion: Opinião do analista (texto descritivo)
+  * Procure em: seção de conclusão, parecer, opinião sobre a transação, pontos de atenção
+
+FORMATO CRÍTICO:
+- Todos os valores monetários: APENAS números decimais (ex: 14.9, não "14.9M" ou "$14.9M")
+- Todos os percentuais: APENAS números decimais (ex: 85.5, não "85.5%")
+- Todos os múltiplos: APENAS números decimais (ex: 6.5, não "6.5x")
+- Use null para campos não encontrados

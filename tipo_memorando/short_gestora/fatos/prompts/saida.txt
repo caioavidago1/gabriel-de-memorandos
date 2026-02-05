@@ -1,0 +1,24 @@
+Extraia PROJEÇÕES E SAÍDA para co-investimento (gestora):
+
+CENÁRIO BASE (premissas e retornos):
+- cenario_base_ano_saida: Ano da saída (inteiro, ex: 2030).
+- cenario_base_cagr_receita_pct: CAGR de receita % (número).
+- cenario_base_margem_ebitda_pct: Margem EBITDA % (número).
+- cenario_base_multiplo_saida_x: Múltiplo de saída EV/EBITDA (ex: 7.0).
+- cenario_base_multiplo_saida_ano: Ano do múltiplo de referência (inteiro).
+- cenario_base_dividendos_periodo: Dividendos ao longo do período (texto ou valor).
+- cenario_base_tir_bruta_pct: TIR bruta % (gestora).
+- cenario_base_moic_bruto: MOIC bruto (x).
+- cenario_base_tir_liquida_pct: TIR líquida % (coinvestidor).
+- cenario_base_moic_liquido: MOIC líquido (x).
+
+CENÁRIO ALTERNATIVO (mesmos campos com prefixo cenario_alternativo_*).
+
+CENÁRIO CONSERVADOR (mesmos campos com prefixo cenario_conservador_*).
+
+TAXAS E OBSERVAÇÕES:
+- taxa_gestao_pct: Taxa de gestão %.
+- taxa_performance_pct: Taxa de performance %.
+- saida_observacoes: Observações sobre premissas e retornos (texto).
+
+Regras: use apenas números para percentuais e múltiplos (sem "%" ou "x"). Use null para não encontrados. Busque em seções "Projeções", "Retornos", "Exit", "Cenários".

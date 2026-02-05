@@ -110,7 +110,7 @@ def format_facts_for_prompt(
         "transaction_structure": "TRANSAÇÃO",
         "financials_history": "FINANCIALS HISTÓRICO",
         "projections": "PROJEÇÕES (SAÍDA)",
-        "saida": "PROJEÇÕES (SAÍDA)",
+        "saida": "SAÍDA",
         "returns": "RETORNOS",
         "qualitative": "ASPECTOS QUALITATIVOS",
         "opinioes": "OPINIÕES",
@@ -119,7 +119,6 @@ def format_facts_for_prompt(
         "estrategia": "ESTRATÉGIA",
         "estrategia_fundo": "ESTRATÉGIA",
         "spectra_context": "CONTEXTO SPECTRA",
-        "portfolio_secundario": "PORTFÓLIO SECUNDÁRIO",
     }
     
     # Usar títulos fornecidos ou padrão

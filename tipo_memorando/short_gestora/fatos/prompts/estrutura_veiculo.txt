@@ -1,0 +1,19 @@
+Extraia informações da seção ESTRUTURA DO VEÍCULO DE COINVESTIMENTO:
+
+CAMPOS (Regulamento):
+- duracao_fundo_anos: Duração do fundo em anos (número inteiro).
+- capital_autorizado: Capital autorizado (valor e moeda).
+- taxa_gestao_veiculo_pct: Taxa de gestão em %.
+- taxa_performance_veiculo_pct: Taxa de performance em % (sobre hurdle rate).
+- hurdle_rate: Hurdle rate ou taxa de preferência.
+- catch_up: Catch-up: Sim/Não e detalhes.
+- evento_equipe_chave: Condições de evento de equipe chave.
+- quorum_destituicao_pct: Quórum para destituição do gestor em %.
+
+CAMPOS (Política de distribuição):
+- chamadas_capital: Expectativa de timing e valores das chamadas de capital.
+
+CAMPOS (Pontos de atenção):
+- pontos_atencao_regulamento: Pontos de atenção do regulamento.
+
+Use null para campos não encontrados. Valores numéricos: apenas números.

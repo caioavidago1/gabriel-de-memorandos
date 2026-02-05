@@ -1,0 +1,15 @@
+Extraia TABELAS DE RETORNOS ESPERADOS (IRR, MOIC por cenário e sensibilidade):
+
+CAMPOS DO SCHEMA (extrair com estes nomes exatos):
+
+- returns_base_case: Retornos do cenário base. Objeto: {irr_pct: float, moic: float, exit_year: int, exit_multiple: float}
+- returns_upside_case: Retornos do cenário otimista (mesmo formato)
+- returns_downside_case: Retornos do cenário pessimista (mesmo formato)
+- returns_sensitivity_table: Lista de cenários de sensibilidade. Cada item: {exit_year: int, exit_multiple: float, irr_pct: float, moic: float}
+- returns_exit_scenarios: Lista de cenários de saída com diferentes múltiplos (mesmo formato por item)
+
+INSTRUÇÕES:
+1. Use tabelas de retornos do documento quando disponíveis (o sistema pode ter passado contexto de tabelas extraídas)
+2. IRR e percentuais: APENAS números decimais (ex: 36.0, não "36%")
+3. MOIC e múltiplos: APENAS números decimais (ex: 3.9, não "3.9x")
+4. Use null para campos não encontrados

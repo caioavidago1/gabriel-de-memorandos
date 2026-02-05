@@ -11,20 +11,7 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from core.logger import get_logger
 from core.chromadb_store import get_or_create_collection, search_memo_chunks
 
-# Imports condicionais para múltiplos providers
-try:
-    from langchain_openai import ChatOpenAI
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
-    ChatOpenAI = None
-
-try:
-    from langchain_anthropic import ChatAnthropic
-    ANTHROPIC_AVAILABLE = True
-except ImportError:
-    ANTHROPIC_AVAILABLE = False
-    ChatAnthropic = None
+from model_config import get_llm_for_agents, GerenciadorModelos, get_default_model
 
 logger = get_logger(__name__)
 
@@ -41,29 +28,16 @@ class RAGChatAgent:
     
     def __init__(
         self,
-        model: str = "gpt-4o",
+        model: Optional[str] = None,
         temperature: float = 0.3,
         max_context_chunks: int = 5
     ):
-        # Detectar provider baseado no nome do modelo e inicializar LLM apropriado
-        if "claude" in model.lower():
-            if not ANTHROPIC_AVAILABLE:
-                logger.warning(f"Modelo Claude solicitado mas langchain-anthropic não está instalado. Usando GPT-4o como fallback.")
-                logger.info("Para usar Claude, instale: pip install langchain-anthropic anthropic")
-                model = "gpt-4o"
-                self.llm = ChatOpenAI(model=model, temperature=temperature)
-                self.provider = "openai"
-            else:
-                self.llm = ChatAnthropic(model=model, temperature=temperature)
-                self.provider = "anthropic"
-                logger.info(f"Usando modelo Anthropic: {model}")
-        else:
-            if not OPENAI_AVAILABLE:
-                raise ImportError("langchain-openai não está instalado. Execute: pip install langchain-openai")
-            self.llm = ChatOpenAI(model=model, temperature=temperature)
-            self.provider = "openai"
-            logger.info(f"Usando modelo OpenAI: {model}")
-        
+        # LLM centralizado em model_config (OpenAI/Anthropic conforme cadastro)
+        if model is None:
+            model = get_default_model()
+        self.llm = get_llm_for_agents(model, temperature)
+        config = GerenciadorModelos.MODELOS_DISPONIVEIS.get(model)
+        self.provider = config.provedor.value if config else "openai"
         self.max_context_chunks = max_context_chunks
         self.model = model
         self.temperature = temperature

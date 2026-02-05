@@ -5,762 +5,347 @@
 ## 📋 Índice
 
 1. [Visão Geral](#-visão-geral)
-2. [Arquitetura de Agentes e LangGraph](#-arquitetura-de-agentes-e-langgraph)
-3. [Fluxo Completo dos Agentes](#-fluxo-completo-dos-agentes)
-4. [Nós LangGraph e Técnicas](#-nós-langgraph-e-técnicas)
-5. [Tecnologias e Stack](#-tecnologias-e-stack)
-6. [Instalação](#-instalação)
-7. [Uso](#-uso)
-8. [Configuração](#-configuração)
+2. [Arquitetura da Plataforma](#-arquitetura-da-plataforma)
+3. [Fluxo Completo do Usuário](#-fluxo-completo-do-usuário)
+4. [Parsing e Cache](#-parsing-e-cache)
+5. [Processamento de Documentos e RAG](#-processamento-de-documentos-e-rag)
+6. [Extração de Facts (LangGraph)](#-extração-de-facts-langgraph)
+7. [Registry e Tipos de Memorando](#-registry-e-tipos-de-memorando)
+8. [Geração de Memorandos](#-geração-de-memorandos)
+9. [Facts: Visibilidade e Filtragem](#-facts-visibilidade-e-filtragem)
+10. [Chat com RAG](#-chat-com-rag)
+11. [Histórico e Exportação](#-histórico-e-exportação)
+12. [Modelos de IA](#-modelos-de-ia)
+13. [Tecnologias e Stack](#-tecnologias-e-stack)
+14. [Instalação e Uso](#-instalação-e-uso)
+15. [Configuração](#-configuração)
+16. [Métricas](#-métricas)
 
 ---
 
 ## 🎯 Visão Geral
 
-Sistema automatizado de geração de memorandos de investimento usando **agentes especializados** orquestrados via **LangGraph**. O sistema processa documentos (CIMs, teasers) e gera memorandos estruturados para diferentes tipos de investimento.
+Sistema automatizado de geração de memorandos de investimento usando **agentes especializados** orquestrados via **LangGraph**. A plataforma processa documentos (CIMs, teasers, PDFs), extrai fatos estruturados e gera memorandos por tipo de investimento, com edição assistida por IA e exportação para Word.
 
-### **Tipos de Memo Suportados**
-- ✅ **Short Memo - Co-investimento (Search Fund)** (investimentos diretos em empresas via search fund)
-- ✅ **Short Memo - Primário** (commitments em fundos de PE/VC)
-- ✅ **Short Memo - Gestora** (análise de fund managers)
-- ✅ **Short Memo - Secundário** (aquisição de stakes em fundos existentes)
+### Tipos de Memo Suportados
 
-### **Stack Tecnológico**
+| Tipo | Descrição |
+|------|-----------|
+| **Short Memo - Co-investimento (Search Fund)** | Investimentos diretos em empresas via search fund (6 seções fixas) |
+| **Short Memo - Co-investimento (Gestora)** | Análise de fund managers / gestoras |
+| **Short Memo - Primário** | Commitments em fundos de PE/VC (4 seções: Resumo, Gestora, Portfolio, Fundo) |
+| **Memorando - Co-investimento (Search Fund)** | Memo completo com 9 seções (inclui Board/Cap Table, Projeções, Retornos, etc.) |
+
+### Recursos Principais
+
+- **Upload e parsing** de múltiplos PDFs (LlamaParse), com **cache** por hash para evitar reprocessamento
+- **Chunking inteligente** com metadata (MarkdownChunker), **embeddings** (OpenAI) e armazenamento em **ChromaDB** por `memo_id`
+- **Extração de facts** por tipo de memo via **LangGraph** (seções em paralelo, retry automático, schemas Pydantic)
+- **Tabela DRE** (Histórico e Projeções) para tipos Search Fund e Gestora: parâmetros configuráveis, preenchimento automático a partir dos documentos
+- **Geração de seções** por **orchestrators** específicos (estrutura fixa por tipo), com RAG por seção e validação/retry
+- **Edição de parágrafos** com **chat RAG** por seção (perguntas sobre o documento, sugestões de texto)
+- **Filtro de facts**: campos habilitados/desabilitados por tipo; apenas facts habilitados são enviados aos agentes
+- **Histórico** de memos (salvar/carregar) e **exportação DOCX**
+- **Múltiplos modelos** (OpenAI e Anthropic) configuráveis em `model_config.py`
+
+---
+
+## 🏗️ Arquitetura da Plataforma
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  app.py (Streamlit)                                                         │
+│  - Páginas: home | field_editor | memo_history                               │
+│  - Session state: memo_type, parsed_documents, document_embeddings,        │
+│    extracted_facts, facts_edited, disabled_facts, custom_fields,            │
+│    field_paragraphs, dre_table_generator, selected_model                    │
+└───────────────────────────────┬─────────────────────────────────────────────┘
+                                │
+        ┌───────────────────────┼───────────────────────┐
+        ▼                       ▼                       ▼
+┌───────────────┐    ┌─────────────────────┐   ┌──────────────────────┐
+│ parser.py     │    │ core/                │   │ tipo_memorando/      │
+│ LlamaParse    │    │ document_processor   │   │ registry.py          │
+│ PDF → MD      │    │ ChromaDB, extract    │   │ MEMO_TYPE_TO_TIPO    │
+└───────────────┘    │ extract_all_facts    │   │ get_fatos_config     │
+                     └─────────────────────┘   │ uses_dre_table        │
+        │                       │              └───────────┬───────────┘
+        │                       │                          │
+        ▼                       ▼                          ▼
+┌───────────────┐    ┌─────────────────────┐   ┌──────────────────────┐
+│ .cache/       │    │ core/               │   │ short_searchfund/     │
+│ parsed_docs   │    │ langgraph_          │   │ short_gestora/         │
+│ (hash → JSON) │    │ orchestrator        │   │ short_primario/       │
+└───────────────┘    │ LangGraphExtractor  │   │ memo_searchfund/      │
+                     │ ExtractionAgent     │   │ (orchestrator +       │
+                     └─────────────────────┘   │  agents + fatos)      │
+                                │              └──────────────────────┘
+                                │
+        ┌───────────────────────┼───────────────────────┐
+        ▼                       ▼                       ▼
+┌───────────────┐    ┌─────────────────────┐   ┌──────────────────────┐
+│ facts/        │    │ chat/               │   │ history/             │
+│ filtering     │    │ RAGChatAgent        │   │ MemoHistoryManager   │
+│ builder       │    │ ChromaDB            │   │ memo_history.json     │
+└───────────────┘    └─────────────────────┘   └──────────────────────┘
+                                │
+                                ▼
+                     ┌─────────────────────┐
+                     │ docx_edit/formatter │
+                     │ export_memo_to_docx │
+                     └─────────────────────┘
+```
+
+- **Registry** (`tipo_memorando/registry.py`): mapeia o `memo_type` (string da UI) para a pasta do tipo (`short_searchfund`, `short_gestora`, etc.), fornece `get_fatos_config(memo_type)`, `get_fatos_module(memo_type)` e `uses_dre_table(memo_type)`.
+- **Core**: parsing não fica no core; **DocumentProcessor** faz chunking, embeddings, ChromaDB e chama **LangGraphExtractor** para extração. **ExtractionAgent** (por seção) usa prompts e schemas do tipo.
+- **Tipos**: cada tipo tem `fatos/` (config, extraction, prompts, render_tab_*), `agents/`, `orchestrator.py` (`generate_full_memo`) e, quando usa LangGraph, `langgraph_orchestrator.py` (herda de `_base/base_langgraph_orchestrator`).
+
+---
+
+## 🔄 Fluxo Completo do Usuário
+
+1. **Home**  
+   Usuário escolhe **Tipo de Memorando** e faz **upload** de um ou mais PDFs.
+
+2. **Validações**  
+   Máximo de arquivos e tamanho (ex.: 30 arquivos, 500 MB por arquivo, 5 GB total). Se o tipo usar DRE, é exibida a **configuração da tabela DRE** (ano referência, primeiro/último ano); o botão "Processar Documentos e Extrair Fatos" só aparece após confirmar os parâmetros.
+
+3. **Parsing**  
+   Para cada arquivo: calcula hash MD5; se existir cache em `.cache/parsed_documents/{hash}.json` (e não expirado, ex.: 30 dias), usa cache; senão, salva em `temp_uploads/`, chama `DocumentProcessor().parse_document()` (LlamaParse) e grava resultado no cache. Parsing pode ser **paralelo** (ex.: semáforo 4) com retry para rate limit. Resultados são reunidos em `st.session_state.parsed_documents`.
+
+4. **Embedding**  
+   Gera `memo_id` (ex.: `short_memo_co_investimento_search_fund_20250205_123456`). `DocumentProcessor.create_embeddings_with_chromadb()`: para cada documento, usa **MarkdownChunker** (chunk_size/overlap), gera embeddings (OpenAI `text-embedding-3-small`) e persiste no ChromaDB com metadata (memo_id, memo_type, source, etc.). Progresso/ETA via callback. `document_embeddings = { "memo_id": memo_id, "vector_store": "chromadb" }`.
+
+5. **Extração de facts**  
+   `processor.extract_all_facts(parsed_documents, memo_type, document_embeddings)`. Internamente: `extract_facts_parallel` → **LangGraphExtractor**. Texto combinado dos docs + `memo_type` + `embeddings_data`. O grafo: **extract_all_parallel** (seções do tipo em paralelo via `get_fatos_config(memo_type).get_sections_for_memo_type()` e **ExtractionAgent** por seção) → **validate_results** → **should_retry** (retry seletivo ou finalize). Resultado é um dict por seção (ex.: identification, transaction_structure, financials_history, saida, qualitative, opinioes; ou para Primário: gestora, fundo, estrategia, spectra_context, opinioes). Para "Memorando - Co-investimento (Search Fund)", após extração padrão pode haver **regeneração** com **TableExtractor** (projections_table, returns_table, board_cap_table).  
+   Facts preenchem `extracted_facts` e `facts_edited`; widgets são populados com `safe_str_conversion`. Para tipos com DRE, a **tabela DRE** é preenchida automaticamente a partir dos documentos (`fill_dre_table_from_documents`). Status passa a **ready**.
+
+6. **Fatos na UI**  
+   Tabs por tipo: Primário tem Gestora, Fundo, Estratégia, Contexto Spectra, Opiniões; outros têm Identificação, Transação, Saída, Qualitativo. Campos têm **visibilidade** por tipo (FIELD_VISIBILITY em `tipo_memorando/_base/fatos/config.py` e sobrescritas por tipo). Checkboxes habilitam/desabilitam campos; desabilitados entram em `disabled_facts` (set de `section.field_key`).
+
+7. **Gerar Memorando**  
+   Usuário ajusta **Criatividade** (temperature) e **Modelo de IA**. Ao clicar "Gerar Memorando":  
+   - Facts são filtrados: `filter_disabled_facts(facts_edited, disabled_facts)`.  
+   - Se o tipo usar DRE e houver `dre_table_generator`, `filtered_facts["dre_table"] = dre_table_generator.to_dict()`.  
+   - Por tipo, chama o **orchestrator** correspondente:  
+     - Short Memo Search Fund → `tipo_memorando.short_searchfund.orchestrator.generate_full_memo()`  
+     - Memorando Search Fund → `tipo_memorando.memo_searchfund.orchestrator.generate_full_memo()`  
+     - Short Memo Gestora → `tipo_memorando.short_gestora.orchestrator.generate_full_memo()`  
+     - Short Memo Primário → `tipo_memorando.short_primario.orchestrator.generate_full_memo()`  
+   - Cada orchestrator usa **estrutura fixa** de seções e **LangGraph** (base em `_base/base_langgraph_orchestrator`): para cada seção, nó **prepare_section** (RAG no ChromaDB com query específica da seção), **generate_with_agent** (agente especializado com facts + RAG), **validate_output**, **should_retry** (retry/finalize), **finalize**.  
+   - Seções geradas são convertidas para o formato do app (`paragraphs`, quality_score/examples_used placeholders) e adicionadas a `custom_fields` e `field_paragraphs`.
+
+8. **Editor de Seção (field_editor)**  
+   Sidebar lista seções; ao clicar numa seção, abre a página do editor com parágrafos à esquerda e **chat fixo** à direita. Parágrafos podem ser editados, reordenados, removidos ou novos adicionados. O **chat** usa **RAGChatAgent**: busca no ChromaDB por `memo_id`, usa facts como contexto e permite perguntas sobre o documento e sugestões para o parágrafo focado.
+
+9. **Exportação e Histórico**  
+   - **Gerar DOCX** (sidebar): `export_memo_to_docx(memo_type, custom_fields, field_paragraphs)` gera Word (capa Spectra, tipo, data, seções/parágrafos justificados, Calibri 12). Download via **Baixar DOCX**.  
+   - **Salvar**: abre formulário com nome do memo (default: empresa + tipo); **MemoHistoryManager.save_memo()** persiste tipo, seções, parágrafos, facts_snapshot em `history/memo_history.json`.  
+   - **Ver Histórico**: lista memos; para cada um, **Carregar** (restaura session_state), **Exportar DOCX** (gera e permite download), **Deletar**.
+
+---
+
+## 📄 Parsing e Cache
+
+- **parser.py**: usa **LlamaParse** (LLAMA_CLOUD_API_KEY), `result_type="markdown"`, `language="pt"`, system prompt para documentos financeiros. Concatena páginas em um único texto com marcadores `=== PAGE i ===`. Retorna dict com `filename`, `text`, `length`, `pages`.
+- **Cache**: `get_file_hash(file_content)` (MD5). Cache em `.cache/parsed_documents/{hash}.json` com `result`, `filename`, `cached_at`, `file_hash`. Cache expira em 30 dias. Em **app.py**, antes de parsear verifica `load_from_cache(file_hash)`; se hit, não salva em temp e não chama parser. Após parse bem-sucedido, `save_to_cache(file_hash, result, filename)`.
+
+---
+
+## 📚 Processamento de Documentos e RAG
+
+- **DocumentProcessor** (`core/document_processor.py`):
+  - **parse_document(path)**: delega para `parser.parse()`.
+  - **chunk_text** / **create_embeddings**: chunking simples ou com metadata.
+  - **create_embeddings_with_chromadb(parsed_docs, memo_id, memo_type, version, progress_callback)**: por documento, usa **MarkdownChunker** para `chunk_with_metadata`; gera embeddings em batches (50); persiste no **ChromaDB** (core/chromadb_store) com metadata (memo_id, source, etc.). Retorna `memo_id`.
+  - **search_chromadb_chunks(memo_id, query, top_k, section)**: embedding da query, busca na collection filtrada por `memo_id`, opcionalmente por `section`; retorna lista de chunks com score e metadata.
+
+- **MarkdownChunker** (`core/markdown_chunker.py`): preserva hierarquia (h1–h6), títulos, tabelas; gera chunks com metadata (section_title, section_level, has_table, full_path).
+
+- **ChromaDB**: coleção persistente; documentos armazenados com embedding e metadata; queries por `memo_id` para isolar contexto de cada memo.
+
+---
+
+## 🔍 Extração de Facts (LangGraph)
+
+- **LangGraphExtractor** (`core/langgraph_orchestrator.py`):
+  - Grafo: **extract_all_parallel** → **validate_results** → **should_retry** (retry_failed_sections ou finalize) → **finalize** → END.
+  - **extract_all_parallel**: obtém seções com `get_fatos_config(memo_type).get_sections_for_memo_type(memo_type)`; cria um **ExtractionAgent** por seção; executa `agent.extract(document_text, memo_type, embeddings_data)` em paralelo (asyncio.gather). Cada agente usa prompt e schema da seção (arquivos em `tipo_memorando/<tipo>/fatos/prompts/` e schemas em extraction/schemas).
+  - **ExtractionAgent** (`core/extraction_agents.py`): carrega prompt do tipo, opcionalmente busca RAG (ChromaDB) se `embeddings_data` tiver memo_id, invoca LLM com structured output (Pydantic). Retorna dict de campos da seção.
+  - **validate_results** / **retry_failed_sections**: valida preenchimento; seções com falha podem ser reexecutadas até `max_retries`.
+  - **extract_all_facts** em DocumentProcessor: `asyncio.run(extract_facts_parallel(...))` → resultado por seção.
+
+- **Memo Completo Search Fund**: após `extract_all_facts`, `regenerate_facts_for_memo_type` pode chamar **TableExtractor** para preencher projections_table, returns_table, board_cap_table (board_members, cap_table) se ausentes.
+
+- **DRE**: tipos que usam DRE (Short Memo Search Fund, Short Memo Gestora, Memorando Search Fund) têm UI em `tipo_memorando/tabela/ui.py` (**render_dre_table_inputs**). Parâmetros (ano referência, primeiro ano histórico, último ano projeção) ficam em `st.session_state.dre_table_inputs_confirmed` e `dre_table_generator`. Após extração, **fill_dre_table_from_documents** preenche a tabela a partir dos documentos. O dict da DRE é enviado aos agentes como `filtered_facts["dre_table"]` na geração.
+
+---
+
+## 📁 Registry e Tipos de Memorando
+
+- **registry.py**:
+  - `MEMO_TYPE_TO_TIPO`: mapeia string da UI para pasta (`short_searchfund`, `short_gestora`, `short_primario`, `memo_searchfund`).
+  - `uses_dre_table(memo_type)`: True para Search Fund (short e memo) e Gestora.
+  - `get_fatos_config(memo_type)`: importa `tipo_memorando.<tipo>.fatos.config` e retorna o módulo.
+  - `get_fatos_module(memo_type)`: importa `tipo_memorando.<tipo>.fatos` (para render_tab_* no app).
+  - `get_prompts_path(memo_type, section)`: path para `fatos/prompts/<section>.txt`.
+
+- Cada tipo em **tipo_memorando/** contém:
+  - **fatos/**: `config.py` (SECTIONS, FIELD_VISIBILITY, get_sections_for_memo_type, get_relevant_fields_for_memo_type, get_field_count_for_memo_type), `extraction.py`, prompts em `prompts/*.txt`, e módulos de render (identificacao, transacao, saida, qualitativo, opinioes; ou gestora, fundo, estrategia, spectra_context para Primário).
+  - **agents/**: um agente por seção do memo (ex.: IntroAgent, MercadoAgent, EmpresaAgent, FinancialsAgent, TransacaoAgent, PontosAprofundarAgent para short_searchfund).
+  - **orchestrator.py**: função `generate_full_memo(facts, rag_context, memo_id, processor, model, temperature)` que instancia o LangGraph orchestrator do tipo, percorre a estrutura fixa, chama prepare → generate → validate → retry/finalize por seção e retorna `{ section_title: [paragraphs] }`.
+  - **langgraph_orchestrator.py** (onde aplicável): herda de **BaseLangGraphOrchestrator** (`_base/base_langgraph_orchestrator`), define `fixed_structure` (dict section → agent) e `section_queries` (queries RAG por seção). Grafo: prepare_section (RAG ChromaDB) → generate_with_agent → validate_output → should_retry → retry_section ou finalize.
+
+---
+
+## ✍️ Geração de Memorandos
+
+- **Orchestrators por tipo**: cada tipo tem estrutura fixa (ex.: 6 seções para Short Search Fund, 4 para Primário, 9 para Memo Search Fund). O orchestrator compila o grafo LangGraph e, para cada seção:
+  1. **prepare_section**: se houver `memo_id` e `processor`, busca no ChromaDB com `section_queries[section_title]` e top_k (ex.: 10); coloca resultado em state como `section_rag_context`.
+  2. **generate_with_agent**: chama `agent.set_llm(llm)` (se existir) e `agent.generate(facts, section_rag_context)`; o agente monta system/user prompt com facts (build_facts_section, format_facts_for_prompt) e RAG, invoca LLM, aplica formatação (ex.: números).
+  3. **validate_output**: verifica texto não vazio, tamanho mínimo, ausência de mensagens de erro, número mínimo de parágrafos.
+  4. **should_retry**: sem erros → finalize; com erros e retry_count < max_retries → retry_section; senão → finalize.
+  5. **finalize**: divide texto em parágrafos, aplica formatação e retorna `{ section_title: [paragraphs] }`.
+
+- **LLM**: todos os agentes usam **model_config.get_llm_for_agents(model, temperature)** (OpenAI ou Anthropic conforme cadastro). O modelo e a temperatura vêm da UI (selected_model, slider Criatividade).
+
+- **Fallback**: se o tipo não for um dos quatro mapeados, o app usa **core/generation_orchestrator.MemoGenerationOrchestrator** e **SECTION_MAPPING** do core para gerar seção a seção (sem estrutura fixa por tipo).
+
+---
+
+## 🧩 Facts: Visibilidade e Filtragem
+
+- **FIELD_VISIBILITY** (`tipo_memorando/_base/fatos/config.py` e sobrescritas por tipo): por seção e campo, define `"ALL"` ou lista de memo_types para os quais o campo é relevante. Na UI, ao selecionar tipo, **apply_auto_uncheck_for_memo_type** marca como desabilitados os campos não relevantes (adiciona `section.field_key` a `st.session_state.disabled_facts`).
+
+- **filter_disabled_facts** (`facts/filtering.py`): antes de enviar facts aos orchestrators, remove entradas cujo `section.field_key` está em `disabled_facts` e valores vazios/nulos. Assim a IA não recebe campos desabilitados.
+
+- **facts.builder** / **facts.utils**: `build_facts_section`, `format_facts_for_prompt`, `clean_facts`; helpers como `get_fact_safe`, `get_numeric_safe` para montar blocos de contexto nos prompts.
+
+---
+
+## 💬 Chat com RAG
+
+- **ChatHandler** + **render_fixed_chat_panel** (`chat/ui_components.py`): no editor de seção, painel fixo à direita com histórico de mensagens e input. Ao enviar mensagem, usa **RAGChatAgent** (`chat/rag_chat_agent.py`).
+
+- **RAGChatAgent**:
+  - System prompt com **facts** formatados e instruções (responder com base em facts + documentos, citar fonte).
+  - Se houver **memo_id**, busca no ChromaDB com a pergunta do usuário (top_k chunks); concatena chunks no contexto.
+  - Histórico de mensagens (Human/AI) é enviado ao LLM para continuidade.
+  - LLM via **get_llm_for_agents** (model_config); modelo pode ser o selecionado na UI (selected_model).
+
+- Uso: usuário pode focar um parágrafo e pedir sugestões, resumos ou esclarecimentos com base nos documentos e facts.
+
+---
+
+## 📂 Histórico e Exportação
+
+- **MemoHistoryManager** (`history/history_manager.py`): armazenamento em JSON (`history/memo_history.json`). Estrutura: lista de memos com id, memo_type, company_name, memo_name, saved_at, sections (section_name, paragraphs, generation_metadata), facts_snapshot, statistics. **save_memo**, **load_memo**, **list_memos**, **delete_memo**, **get_statistics**.
+
+- **export_memo_to_docx** (`docx_edit/formatter.py`): recebe memo_type, custom_fields, field_paragraphs; cria Document (python-docx); capa com Spectra, tipo, mês/ano; para cada seção, título e parágrafos justificados (Calibri 12); remove markdown (**). Retorna BytesIO. Download no app usa session_state.docx_bytes e docx_filename.
+
+- No histórico, **Exportar DOCX** gera o DOCX a partir do memo carregado (custom_fields/field_paragraphs reconstruídos) e opcionalmente cacheia em session_state por memo id para evitar regenerar a cada render.
+
+---
+
+## 🤖 Modelos de IA
+
+- **model_config.py**:
+  - **GerenciadorModelos.MODELOS_DISPONIVEIS**: dicionário de modelo_id → **ModeloConfig** (id, nome, provedor OPENAI/ANTHROPIC, descricao, max_tokens). Ex.: gpt-5.2, gpt-5.1, gpt-5-mini (OpenAI), claude-opus-4.5, claude-sonnet-4.5 (Anthropic).
+  - **get_default_model()**: ex. `"claude-opus-4.5"`.
+  - **get_llm_for_agents(model_id, temperature)**: retorna ChatOpenAI ou ChatAnthropic conforme ModeloConfig; fallback se provider não disponível.
+  - **get_model_display_name(model_id)**: nome para exibição no selectbox.
+  - **AVAILABLE_MODELS** = MODELOS_DISPONIVEIS para compatibilidade na UI (Gerar Memorando e modelo do chat).
+
+Todos os agentes que produzem texto (orchestrators, RAG chat, generation_orchestrator) devem usar **get_llm_for_agents()** para manter provedor e parâmetros consistentes.
+
+---
+
+## 🔧 Tecnologias e Stack
+
 ```
 ┌─────────────────────────────────────────────┐
-│  Frontend: Streamlit 1.29+                  │
+│  Frontend: Streamlit                         │
 ├─────────────────────────────────────────────┤
-│  LLMs: OpenAI GPT-4o (extração + geração)  │
-│  Embeddings: text-embedding-3-small (1536d) │
+│  LLMs: OpenAI GPT-5.x / Anthropic Claude    │
+│  Embeddings: text-embedding-3-small (1536d)  │
 ├─────────────────────────────────────────────┤
-│  Orchestration: LangGraph + LangChain       │
-│  Parsing: LlamaParse 0.6.83                 │
-│  Validation: Pydantic 2.x                   │
-│  Vector Store: ChromaDB (persistente)       │
+│  Orchestration: LangGraph + LangChain        │
+│  Parsing: LlamaParse                         │
+│  Validation: Pydantic 2.x                    │
+│  Vector Store: ChromaDB (persistente)         │
+│  Export: python-docx                         │
 └─────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🤖 Arquitetura de Agentes e LangGraph
+## 📦 Instalação e Uso
 
-### **Conceito Central: Agentes Especializados**
+### Pré-requisitos
 
-O sistema utiliza uma arquitetura de **multi-agentes especializados**, onde cada agente é responsável por gerar uma seção específica do memorando. Os agentes são orquestrados via **LangGraph**, que gerencia o fluxo de execução, retry automático e validação.
-
-### **Estrutura de Agentes por Tipo de Memo**
-
-#### **Short Memo - Primário**
-
-Para o tipo **Short Memo - Primário**, o sistema utiliza **4 agentes especializados** em uma estrutura fixa:
-
-```python
-FIXED_STRUCTURE = {
-    "Resumo da oportunidade": IntroAgent(),
-    "Gestora, time e forma de atuação": GestoraAgent(),
-    "Portfolio Atual": PortfolioAgent(),
-    "Fundo que Estamos Investindo": FundoAtualAgent()
-}
-```
-
-#### **Short Memo - Secundário**
-
-Para o tipo **Short Memo - Secundário**, o sistema utiliza **4 agentes/funções especializadas** em uma estrutura fixa:
-
-```python
-FIXED_STRUCTURE = {
-    "Introdução": IntroAgentWrapper(),
-    "Histórico Financeiro": FinancialsAgentWrapper(),
-    "Estrutura da Transação": TransactionAgentWrapper(),
-    "Portfólio": PortfolioAgent()
-}
-```
-
-**Características dos Agentes:**
-- ✅ **Especialização**: Cada agente tem conhecimento profundo de sua seção
-- ✅ **Reutilização de LLM**: LLM compartilhado injetado via `set_llm()`
-- ✅ **RAG Inteligente**: Busca contexto específico no ChromaDB por seção
-- ✅ **Prompts Enriquecidos**: Templates com few-shot examples
-- ✅ **Validação**: Formatação e validação de números/valores
-- ✅ **Herança de Classe Base**: Secundário usa `BaseLangGraphOrchestrator` para evitar duplicação
-
-### **Arquitetura LangGraph**
-
-O **LangGraph** é usado para orquestrar o fluxo de geração de cada seção, garantindo:
-- 🔄 **Retry Automático**: Reexecução em caso de falha
-- ✅ **Validação Centralizada**: Verificação de qualidade do output
-- 📊 **State Management**: Estado compartilhado entre nós
-- 🔀 **Fluxo Condicional**: Decisões baseadas em validação
-
----
-
-## 🔄 Fluxo Completo dos Agentes
-
-### **Fase 1: Preparação e Extração de Facts**
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  1. UPLOAD & PARSING                                     │
-│     app.py → parser.py → LlamaParse                      │
-│     PDF/MD → Markdown estruturado                        │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│  2. CHUNKING & EMBEDDINGS                               │
-│     markdown_chunker.py → document_processor.py         │
-│     Markdown → Chunks com metadata → ChromaDB           │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│  3. EXTRAÇÃO DE FACTS (LangGraph Paralelo)              │
-│     langgraph_orchestrator.py (core)                    │
-│                                                          │
-│     START                                                │
-│       │                                                  │
-│       ▼                                                  │
-│     extract_all_parallel (11 seções em paralelo)        │
-│       ├─► identification                                │
-│       ├─► transaction                                   │
-│       ├─► financials                                    │
-│       ├─► gestora                                        │
-│       ├─► fundo                                          │
-│       └─► ... (outras seções)                           │
-│       │                                                  │
-│       ▼                                                  │
-│     validate_results                                     │
-│       │                                                  │
-│       ▼                                                  │
-│     should_retry?                                        │
-│       ├─ yes → retry_failed_sections                    │
-│       └─ no → finalize → END                             │
-└─────────────────────────────────────────────────────────┘
-```
-
-**Detalhes da Extração:**
-- Cada seção usa um **ExtractionAgent** especializado
-- Busca semântica no ChromaDB com queries específicas por seção
-- Structured Output via Pydantic (validação automática)
-- Retry automático para seções que falharam
-
-### **Fase 2: Geração de Conteúdo com Agentes Especializados**
-
-#### **Short Memo - Primário**
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  GERAÇÃO DE SHORT MEMO PRIMÁRIO                         │
-│  (orchestrator.py → langgraph_orchestrator.py)         │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│  Para cada seção (sequencial):                          │
-│                                                          │
-│  SEÇÃO 1: "Resumo da oportunidade"                      │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │  LangGraph Workflow:                               │ │
-│  │                                                    │ │
-│  │  prepare_section                                   │ │
-│  │    │                                                │ │
-│  │    ├─ Busca RAG no ChromaDB                        │ │
-│  │    │  Query: "gestora fundo investimento..."      │ │
-│  │    │  Top 10 chunks relevantes                      │ │
-│  │    │                                                │ │
-│  │    ▼                                                │ │
-│  │  generate_with_agent                               │ │
-│  │    │                                                │ │
-│  │    ├─ IntroAgent.generate()                        │ │
-│  │    │  ├─ Query facts (gestora, fundo, estratégia) │ │
-│  │    │  ├─ Build system prompt (estrutura obrigatória)│ │
-│  │    │  ├─ Enriquecer com templates (few-shot)       │ │
-│  │    │  ├─ Adicionar RAG context                     │ │
-│  │    │  └─ LLM.invoke() → texto gerado              │ │
-│  │    │                                                │ │
-│  │    ▼                                                │ │
-│  │  validate_output                                   │ │
-│  │    │                                                │ │
-│  │    ├─ Verificar: texto não vazio                   │ │
-│  │    ├─ Verificar: mínimo 100 chars                  │ │
-│  │    ├─ Verificar: sem mensagens de erro             │ │
-│  │    └─ Verificar: pelo menos 2 parágrafos           │ │
-│  │    │                                                │ │
-│  │    ▼                                                │ │
-│  │  should_retry?                                      │ │
-│  │    ├─ retry (se erros + tentativas < max)          │ │
-│  │    └─ finalize (se OK ou max retries)               │ │
-│  │    │                                                │ │
-│  │    ▼                                                │ │
-│  │  finalize                                           │ │
-│  │    ├─ Dividir em parágrafos                        │ │
-│  │    ├─ Aplicar formatação de números                 │ │
-│  │    └─ Retornar {section_title: [paragraphs]}      │ │
-│  └────────────────────────────────────────────────────┘ │
-│                                                          │
-│  SEÇÃO 2: "Gestora, time e forma de atuação"           │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │  Mesmo fluxo LangGraph, mas com:                   │ │
-│  │  - GestoraAgent (especializado em gestora)         │ │
-│  │  - Query RAG: "gestora histórico fundação..."      │ │
-│  │  - Facts: gestora, qualitative                     │ │
-│  └────────────────────────────────────────────────────┘ │
-│                                                          │
-│  SEÇÃO 3: "Portfolio Atual"                             │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │  Mesmo fluxo LangGraph, mas com:                   │ │
-│  │  - PortfolioAgent (especializado em portfolio)      │ │
-│  │  - Query RAG: "portfolio fundos deals..."         │ │
-│  │  - Facts: gestora (track record)                    │ │
-│  │  - RAG é CRÍTICO (dados de deals vêm do documento) │ │
-│  └────────────────────────────────────────────────────┘ │
-│                                                          │
-│  SEÇÃO 4: "Fundo que Estamos Investindo"               │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │  Mesmo fluxo LangGraph, mas com:                   │ │
-│  │  - FundoAtualAgent (especializado em fundo)        │ │
-│  │  - Query RAG: "fundo target tamanho..."           │ │
-│  │  - Facts: fundo, estratégia, spectra_context        │ │
-│  └────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────┘
-```
-
-#### **Short Memo - Secundário**
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  GERAÇÃO DE SHORT MEMO SECUNDÁRIO                       │
-│  (orchestrator.py → langgraph_orchestrator.py)         │
-│  Usa BaseLangGraphOrchestrator (herança)                │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│  Para cada seção (sequencial):                          │
-│                                                          │
-│  SEÇÃO 1: "Introdução"                                  │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │  LangGraph Workflow (mesmo do Primário):          │ │
-│  │  - IntroAgentWrapper → generate_intro_section()   │ │
-│  │  - Query RAG: "transação secundária NAV..."      │ │
-│  │  - Facts: transaction_structure                    │ │
-│  └────────────────────────────────────────────────────┘ │
-│                                                          │
-│  SEÇÃO 2: "Histórico Financeiro"                        │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │  - FinancialsAgentWrapper → generate_financials()│ │
-│  │  - Query RAG: "financials receita EBITDA..."      │ │
-│  │  - Facts: financials_history                       │ │
-│  └────────────────────────────────────────────────────┘ │
-│                                                          │
-│  SEÇÃO 3: "Estrutura da Transação"                      │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │  - TransactionAgentWrapper → generate_transaction()│ │
-│  │  - Query RAG: "transação estrutura valuation..."   │ │
-│  │  - Facts: transaction_structure                    │ │
-│  └────────────────────────────────────────────────────┘ │
-│                                                          │
-│  SEÇÃO 4: "Portfólio"                                   │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │  - PortfolioAgent (especializado)                  │ │
-│  │  - Query RAG: "portfolio fundos NAV..."           │ │
-│  │  - Facts: transaction_structure                     │ │
-│  │  - RAG CRÍTICO: dados hierárquicos (fundo→ativo)  │ │
-│  │  - Análise detalhada: histórico, financials,       │ │
-│  │    processos judiciais, projeções Spectra vs gestor│ │
-│  └────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────┘
-```
-
-### **Detalhamento de um Agente: IntroAgent**
-
-Vamos examinar o **IntroAgent** como exemplo completo:
-
-```python
-class IntroAgent:
-    """Agente especializado em geração de Resumo da oportunidade"""
-    
-    def generate(self, facts: Dict, rag_context: Optional[str]) -> str:
-        # 1. QUERY DOS FACTS (cobertura completa)
-        gestora_section = build_facts_section(facts, "gestora", {...})
-        fundo_section = build_facts_section(facts, "fundo", {...})
-        estrategia_section = build_facts_section(facts, "estrategia", {...})
-        spectra_context_section = build_facts_section(facts, "spectra_context", {...})
-        
-        # 2. SYSTEM PROMPT (estrutura obrigatória)
-        system_prompt = """
-        Você é um analista sênior...
-        
-        PADRÃO OBRIGATÓRIO - PRIMEIRA FRASE:
-        "Este documento apresenta a oportunidade de investimento no {fundo_nome}..."
-        
-        ESTRUTURA OBRIGATÓRIA - 3 PARÁGRAFOS:
-        § PARÁGRAFO 1 - Resumo/Contexto da Oportunidade
-        § PARÁGRAFO 2 - Visão Geral da Gestora
-        § PARÁGRAFO 3 - Fundo que Estamos Investindo
-        """
-        
-        # 3. ENRIQUECER COM TEMPLATES (few-shot)
-        system_prompt = enrich_prompt("intro", system_prompt)
-        
-        # 4. USER PROMPT (facts + RAG)
-        user_prompt = f"""
-        [GESTORA]
-        {gestora_section}
-        
-        [FUNDO]
-        {fundo_section}
-        
-        [ESTRATÉGIA]
-        {estrategia_section}
-        
-        [CONTEXTO SPECTRA]
-        {spectra_context_section}
-        
-        [RAG CONTEXT]
-        {rag_context}
-        """
-        
-        # 5. CHAMAR LLM
-        response = llm.invoke([SystemMessage(system_prompt), HumanMessage(user_prompt)])
-        
-        # 6. FORMATAR E VALIDAR
-        return fix_number_formatting(response.content.strip())
-```
-
-**Características do IntroAgent:**
-- ✅ **Estrutura Fixa**: Primeira frase obrigatória + 3 parágrafos
-- ✅ **Query Completa de Facts**: Busca em múltiplas seções (gestora, fundo, estratégia, spectra)
-- ✅ **RAG Context**: Contexto adicional do documento via ChromaDB
-- ✅ **Templates**: Enriquecimento com exemplos few-shot
-- ✅ **Validação**: Formatação automática de números
-
----
-
-## 🧩 Nós LangGraph e Técnicas
-
-### **Grafo LangGraph para Geração**
-
-O grafo LangGraph para geração de seções possui **5 nós principais**:
-
-```python
-workflow = StateGraph(ShortMemoGenerationState)
-
-# NÓS
-workflow.add_node("prepare_section", self._prepare_section)
-workflow.add_node("generate_with_agent", self._generate_with_agent)
-workflow.add_node("validate_output", self._validate_output)
-workflow.add_node("retry_section", self._retry_section)
-workflow.add_node("finalize", self._finalize)
-
-# FLUXO
-workflow.set_entry_point("prepare_section")
-workflow.add_edge("prepare_section", "generate_with_agent")
-workflow.add_edge("generate_with_agent", "validate_output")
-
-# DECISÃO CONDICIONAL
-workflow.add_conditional_edges(
-    "validate_output",
-    self._should_retry,
-    {
-        "retry": "retry_section",
-        "finalize": "finalize",
-        "end": END
-    }
-)
-
-workflow.add_edge("retry_section", "generate_with_agent")
-workflow.add_edge("finalize", END)
-```
-
-### **Nó 1: prepare_section**
-
-**Responsabilidade**: Buscar contexto RAG relevante no ChromaDB
-
-**Técnicas:**
-- **Query Semântica Específica**: Cada seção tem uma query otimizada
-  ```python
-  # Primário
-  SECTION_QUERIES = {
-      "Resumo da oportunidade": "gestora fundo investimento primário commitment...",
-      "Gestora, time e forma de atuação": "gestora histórico fundação posicionamento...",
-      "Portfolio Atual": "portfolio fundos deals investimentos empresas...",
-      "Fundo que Estamos Investindo": "fundo target tamanho ativos estratégia..."
-  }
-  
-  # Secundário
-  SECTION_QUERIES = {
-      "Introdução": "transação secundária oportunidade investimento NAV data base...",
-      "Histórico Financeiro": "financials receita EBITDA FCF histórico crescimento...",
-      "Estrutura da Transação": "transação estrutura valuation múltiplo EV EBITDA...",
-      "Portfólio": "portfolio fundos ativos NAV data base expectativa recebimento..."
-  }
-  ```
-- **Busca no ChromaDB**: `processor.search_chromadb_chunks(memo_id, query, top_k=10)`
-- **Isolamento por Memo**: Filtro `where={"memo_id": memo_id}` garante contexto correto
-
-**Output**: `section_rag_context` (string com top 10 chunks relevantes)
-
-### **Nó 2: generate_with_agent**
-
-**Responsabilidade**: Chamar agente especializado para gerar texto
-
-**Técnicas:**
-- **Injeção de LLM Compartilhado**: `agent.set_llm(self.llm)` (economia de recursos)
-- **Chamada do Agente**: `agent.generate(facts, rag_context)`
-- **Tratamento de Erros**: Try/except com fallback para mensagem de erro
-
-**Output**: `generated_text` (string com texto gerado)
-
-### **Nó 3: validate_output**
-
-**Responsabilidade**: Validar qualidade e formato do texto gerado
-
-**Validações:**
-1. **Texto não vazio**: `if not generated_text or not generated_text.strip()`
-2. **Mínimo de caracteres**: `if len(generated_text.strip()) < 100`
-3. **Sem mensagens de erro**: `if "(Erro" in generated_text`
-4. **Parágrafos suficientes**: `if len(paragraphs) < 2`
-
-**Output**: `validation_errors` (lista de erros) + `paragraphs` (lista de parágrafos)
-
-### **Nó 4: should_retry (Decisão Condicional)**
-
-**Responsabilidade**: Decidir se deve fazer retry ou finalizar
-
-**Lógica:**
-```python
-def _should_retry(self, state) -> Literal["retry", "finalize", "end"]:
-    retry_count = state.get("retry_count", 0)
-    max_retries = state.get("max_retries", 2)
-    validation_errors = state.get("validation_errors", [])
-    
-    # Sem erros → finalizar
-    if not validation_errors:
-        return "finalize"
-    
-    # Max retries atingido → finalizar mesmo com erros
-    if retry_count >= max_retries:
-        return "finalize"
-    
-    # Caso contrário → retry
-    return "retry"
-```
-
-**Técnica**: **Conditional Edges** do LangGraph permitem fluxo dinâmico baseado em estado
-
-### **Nó 5: retry_section**
-
-**Responsabilidade**: Incrementar contador de retry e limpar erros
-
-**Técnica**: **State Mutation** - atualiza `retry_count` e limpa `validation_errors` para nova tentativa
-
-### **Nó 6: finalize**
-
-**Responsabilidade**: Formatar resultado final
-
-**Técnicas:**
-- **Divisão em Parágrafos**: `[p.strip() for p in generated_text.split('\n\n') if p.strip()]`
-- **Formatação de Números**: `fix_number_formatting()` (padroniza formatação de valores)
-- **Estrutura de Saída**: `{section_title: [paragraphs]}`
-
-### **State Management**
-
-O estado compartilhado (`ShortMemoGenerationState`) permite:
-- ✅ **Passagem de dados** entre nós
-- ✅ **Rastreamento de retries** (`retry_count`)
-- ✅ **Acumulação de erros** (`validation_errors`)
-- ✅ **Contexto RAG** (`section_rag_context`) disponível em todos os nós
-
-```python
-class ShortMemoGenerationState(TypedDict, total=False):
-    # Input
-    section_title: str
-    agent: Any
-    facts: Dict[str, Any]
-    memo_id: Optional[str]
-    processor: Optional[Any]
-    
-    # RAG Context
-    section_rag_context: Optional[str]
-    query: str
-    
-    # Generation
-    generated_text: str
-    paragraphs: List[str]
-    
-    # Validation
-    validation_errors: List[str]
-    retry_count: int
-    max_retries: int
-    
-    # Final
-    is_complete: bool
-    final_output: Dict[str, List[str]]
-```
-
----
-
-## 🔧 Tecnologias e Técnicas
-
-### **LangGraph**
-
-**O que é**: Framework para construir aplicações stateful multi-agentes
-
-**Por que usar**:
-- ✅ **State Management**: Estado compartilhado entre nós
-- ✅ **Fluxo Condicional**: Decisões baseadas em validação
-- ✅ **Retry Automático**: Reexecução de nós com falha
-- ✅ **Composição**: Agentes especializados como nós do grafo
-
-**Técnicas utilizadas**:
-- **StateGraph**: Grafo de estados com nós e edges
-- **Conditional Edges**: Fluxo dinâmico baseado em função de decisão
-- **TypedDict State**: Estado tipado para type safety
-
-### **RAG (Retrieval-Augmented Generation)**
-
-**Técnica**: Busca semântica no ChromaDB + injeção no prompt
-
-**Implementação**:
-1. **Chunking Inteligente**: `markdown_chunker.py` preserva hierarquia (h1-h6)
-2. **Embeddings**: `text-embedding-3-small` (1536 dimensões)
-3. **Busca Semântica**: Cosine similarity no ChromaDB
-4. **Query Específica**: Cada seção tem query otimizada
-5. **Top-K Retrieval**: Top 10 chunks mais relevantes
-
-**Benefícios**:
-- ✅ **Contexto Relevante**: Apenas chunks relacionados à seção
-- ✅ **Redução de Tokens**: ~67% menos tokens vs contexto completo
-- ✅ **Precisão**: 90% vs 65% sem RAG
-
-### **Structured Output (Pydantic)**
-
-**Técnica**: Validação automática via schemas Pydantic
-
-**Uso na Extração**:
-```python
-class FinancialsHistoryFacts(BaseModel):
-    revenue_2020_mm: Optional[float] = Field(None, ge=0)
-    ebitda_margin_2020_pct: Optional[float] = Field(None, ge=0, le=100)
-    # ... 40+ campos
-```
-
-**Benefícios**:
-- ✅ **Validação Automática**: Tipos, ranges, constraints
-- ✅ **Self-documenting**: Schemas servem como documentação
-- ✅ **Redução de Erros**: -80% parsing errors vs JSON não estruturado
-
-### **Few-Shot Learning**
-
-**Técnica**: Enriquecimento de prompts com exemplos
-
-**Implementação**:
-- **Templates JSON**: Exemplos de seções bem formatadas
-- **Busca Semântica**: Encontra exemplos similares na biblioteca
-- **Injeção no Prompt**: Exemplos adicionados ao system prompt
-
-**Benefícios**:
-- ✅ **Consistência**: Output segue padrões estabelecidos
-- ✅ **Qualidade**: Melhor formatação e estrutura
-
-### **LLM Compartilhado**
-
-**Técnica**: Uma instância de LLM injetada em todos os agentes
-
-**Implementação**:
-```python
-# No orchestrator
-self.llm = ChatOpenAI(model=model, temperature=temperature)
-
-# Injeção no agente
-if hasattr(agent, 'set_llm'):
-    agent.set_llm(self.llm)
-```
-
-**Benefícios**:
-- ✅ **Economia de Recursos**: Uma conexão vs múltiplas
-- ✅ **Consistência**: Mesmo modelo/temperature em todas as seções
-
----
-
-## 📦 Instalação
-
-### **Pré-requisitos**
 - Python 3.11+
-- OpenAI API Key
-- LlamaParse API Key
+- OpenAI API Key (e opcionalmente Anthropic para Claude)
+- LlamaParse: LLAMA_CLOUD_API_KEY no .env
 
-### **Setup**
+### Setup
 
 ```bash
-# 1. Clonar repositório
-cd memorandos
+# Clonar / entrar no repositório
+cd gabriel-de-memorandos
 
-# 2. Criar ambiente virtual
+# Ambiente virtual
 python -m venv .venv
-.venv\Scripts\activate  # Windows
-source .venv/bin/activate  # Linux/Mac
+.venv\Scripts\activate   # Windows
+# source .venv/bin/activate  # Linux/Mac
 
-# 3. Instalar dependências
+# Dependências
 pip install -r requirements.txt
 
-# 4. Configurar variáveis de ambiente
-# Criar arquivo .env na raiz:
-OPENAI_API_KEY=sk-...
-LLAMA_CLOUD_API_KEY=llx-...
+# .env na raiz
+# OPENAI_API_KEY=...
+# LLAMA_CLOUD_API_KEY=...
+# ANTHROPIC_API_KEY=...  # se usar Claude
 ```
 
-### **Estrutura `.env`**
-```env
-# OpenAI
-OPENAI_API_KEY=sk-proj-...
-
-# LlamaParse
-LLAMA_CLOUD_API_KEY=llx-...
-
-# Opcional: Configurações
-CHUNK_SIZE=6000
-CHUNK_OVERLAP=500
-MAX_RETRIES=2
-CHROMA_DB_PATH=./chroma_db
-```
-
----
-
-## 🚀 Uso
-
-### **Iniciar aplicação**
+### Executar
 
 ```bash
-# Ativar ambiente virtual
-.venv\Scripts\activate
-
-# Rodar Streamlit
 streamlit run app.py
 ```
 
 Acessar: http://localhost:8501
 
-### **Workflow Completo**
+### Workflow resumido
 
-**1. Upload de Documentos (Tab 1)**
-- Selecionar tipo de memo (Search Fund / Primário / Secundário / Gestora)
-- Upload PDF ou Markdown
-- LlamaParse processa (15-30s)
-
-**2. Extração Automática**
-- Chunking inteligente com metadata
-- Embeddings OpenAI (5-10s)
-- Salvamento no ChromaDB (persistente)
-- Extração paralela de facts (15-25s) via LangGraph
-
-**3. Edição de Facts (Tab 2)**
-- Tabs dinâmicos por tipo de memo
-- Editar campos extraídos
-- Validação automática de tipos
-
-**4. Geração de Memo (Tab 3)**
-- Para cada seção:
-  - LangGraph orquestra: prepare → generate → validate → retry/finalize
-  - Agente especializado gera texto com RAG + facts
-  - Validação automática e retry se necessário
-- Preview de cada seção
-
-**5. Edição Final (Tab 4)**
-- Editor de seções (arrastar, deletar)
-- Adicionar parágrafos customizados
-- Export para Word (.docx) - download automático
+1. Escolher **Tipo de Memorando** e fazer upload de PDF(s). Se o tipo usar DRE, configurar parâmetros e confirmar.
+2. Clicar em **Processar Documentos e Extrair Fatos**: parsing (com cache) → embedding → ChromaDB → extração de facts.
+3. Revisar/editar **Fatos** nas tabs; habilitar/desabilitar campos conforme necessidade.
+4. Ajustar **Criatividade** e **Modelo de IA** e clicar em **Gerar Memorando**.
+5. Editar seções na sidebar (abrir seção → editor com parágrafos e chat RAG).
+6. **Gerar DOCX** e **Baixar DOCX**; ou **Salvar** no histórico e depois **Ver Histórico** para carregar/exportar/deletar.
 
 ---
 
 ## ⚙️ Configuração
 
-### **Visibilidade de Campos** (`facts_config.py`)
-
-Controla quais campos aparecem para cada tipo de memo:
-
-```python
-FIELD_VISIBILITY = {
-    "identification": {
-        "company_name": {
-            "label": "Nome da Empresa",
-            "visible_for": ["Short Memo - Co-investimento (Search Fund)"]
-        },
-        "fund_name": {
-            "label": "Nome do Fundo",
-            "visible_for": ["Short Memo - Primário"]
-        }
-    }
-}
-```
-
-### **Seções por Tipo** (`facts_config.py`)
-
-```python
-def get_sections_for_memo_type(memo_type: str) -> List[str]:
-    sections = {
-        "Short Memo - Co-investimento (Search Fund)": [
-            "identification",
-            "transaction_structure",
-            "financials_history",
-            "saida",
-            "returns",
-            "qualitative"
-        ],
-        "Short Memo - Primário": [
-            "gestora",
-            "fundo",
-            "estrategia",
-            "spectra_context",
-            "opinioes"
-        ],
-        "Short Memo - Secundário": [
-            "identification",
-            "transaction_structure",
-            "financials_history",
-            "returns",
-            "qualitative",
-            "opinioes",
-            "portfolio_secundario"
-        ]
-    }
-    return sections.get(memo_type, [])
-```
-
-**Campos Específicos do Secundário:**
-- `transaction_structure`: `multiple_ev_fcf`, `target_leverage`, `acquisition_debt_mm`
-- `financials_history`: `fcf_current_mm`, `fcf_conversion_pct`, `roic_pct`
-- `returns`: `fcf_yield_pct`, `dividend_recaps`
-- `portfolio_secundario`: `nav_data_base`, `nav_mm`, `desconto_nav_pct`, `expectativa_recebimento_mm`, `numero_fundos`, `numero_ativos`, `portfolio_commentary`
+- **Visibilidade de campos**: `tipo_memorando/_base/fatos/config.py` (base) e `tipo_memorando/<tipo>/fatos/config.py` (sobrescritas). FIELD_VISIBILITY e funções get_sections_for_memo_type, get_relevant_fields_for_memo_type, get_field_count_for_memo_type.
+- **Seções por tipo**: definidas em cada config (SECTIONS ou equivalente); o registry não define seções, apenas carrega o módulo config do tipo.
+- **Modelos**: adicionar ou alterar em `model_config.py` (GerenciadorModelos.MODELOS_DISPONIVEIS e get_llm_for_agents para novo provedor se necessário).
+- **ChromaDB**: path e configuração em core/chromadb_store (persistência).
+- **Cache de parsing**: `.cache/parsed_documents`; expiração em 30 dias em app.py (load_from_cache).
 
 ---
 
-## 📊 Métricas de Performance
+## 📊 Métricas
 
-### **Geração com Agentes**
-| Métrica | Valor |
-|---------|-------|
-| Tempo por seção | 3-8s (com RAG + validação) |
-| Tempo total (4 seções) | 15-30s |
-| Taxa de retry | 10-15% |
-| Precisão | 90% (com validação) |
-| Tokens por seção | ~2-3k (com RAG otimizado) |
-| Custo por memo | ~$0.25 |
-
-### **RAG (ChromaDB)**
-| Métrica | Valor |
-|---------|-------|
-| Chunks (50pg) | ~200-300 |
-| Tempo embedding | 5-10s |
-| Latência busca | 0.1-0.5s |
-| Economia tokens | -67% (60k → 20k) |
-| Precisão busca | 85-90% |
+- **Parsing**: tempo por documento varia (15–30 s típico sem cache); cache evita reprocessamento.
+- **Embedding**: batches de 50 chunks; progresso com ETA na UI.
+- **Extração**: seções em paralelo; 1–2 retries por seção em caso de falha.
+- **Geração**: uma seção por vez no LangGraph (prepare → generate → validate → retry/finalize); tempo total depende do número de seções e do modelo.
+- **RAG**: busca por memo_id no ChromaDB; top_k (ex.: 10) por seção ou por pergunta no chat.
 
 ---
 
 ## 📄 Licença
 
 Propriedade de Spectra Investimentos.
-
----

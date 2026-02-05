@@ -1,0 +1,373 @@
+{
+  "meta": {
+    "version": "2.0",
+    "memo_type": "Short Memo - Co-investimento (Search Fund)",
+    "last_updated": "2026-01-09",
+    "description": "Templates estruturados alinhados com os agentes de geração existentes",
+    "source_examples": [
+      "Short Memo Project Oca - Eunoia",
+      "Short Memo Disktrans - Redfoot Capital",
+      "Short Memo TSE - Minerva Capital"
+    ],
+    "integration_notes": "Este JSON é complementar aos agentes existentes em shortmemo/searchfund/*.py. Os fields estão mapeados para os facts que os agentes esperam."
+  },
+  
+  "templates": {
+    "intro": {
+      "title": "Introdução",
+      "agent_file": "intro_agent.py",
+      "structure": {
+        "paragraphs": 2,
+        "description": "§1: Contexto Search e Deal | §2: Estrutura Transação",
+        "mandatory_first_sentence": "{fip_casca} (search fund {investor_nationality} liderado por {searcher_name}, que iniciou seu período de busca no {search_start_date}) está avaliando a aquisição de uma companhia especializada em {business_description}."
+      },
+      "tone": "profissional, primeira pessoa plural, quantificado",
+      "facts_sections_used": {
+        "identification": {
+          "mandatory": ["fip_casca", "company_name", "business_description"],
+          "recommended": ["searcher_name", "investor_nationality", "search_start_date", "company_location"]
+        },
+        "transaction_structure": {
+          "mandatory": ["stake_pct", "ev_mm", "multiple_ev_ebitda", "company_name"],
+          "recommended": ["equity_value_mm", "total_transaction_value_mm", "multiple_total", "cash_pct_total", "cash_payment_mm", "seller_note_mm", "earnout_mm", "acquisition_debt_mm"]
+        }
+      },
+      "writing_guidelines": [
+        "PARÁGRAFO 1: Sujeito = casca/FIP. Estrutura: (search fund {nacionalidade} liderado por {searcher}, que iniciou no {data}) está avaliando aquisição de uma companhia especializada em {descrição}, com foco em {localização}.",
+        "PARÁGRAFO 2: A aquisição contempla X% do equity da {empresa} por {moeda} {valor} (Xx EBITDA ano) e, incluindo custos de transação, search capital e step-up, o valor total chega a {valor} (Xx ou Xx EBITDA), estruturados em X% à vista e X% via acquisition debt/seller note, cujos termos [em negociação/detalhados].",
+        "Tom: primeira pessoa plural quando apropriado",
+        "NÃO usar bullets ou numerações - apenas parágrafos fluidos",
+        "Separar parágrafos com linha em branco"
+      ],
+      "examples": [
+        {
+          "context": "Project Oca / Eunoia - Software de fidelidade (México)",
+          "structure_highlight": "2-3 parágrafos: contexto → estrutura → diligência (quando relevante)",
+          "text": "A Eunoia (search fund mexicano liderado por Fernando Ponce e Eduardo Haro, que iniciou seu período de busca no segundo semestre de 2023) está avaliando a aquisição da Project Oca, uma empresa de software especializada em programas de fidelidade do consumidor para farmácias e laboratórios.\n\nA aquisição contempla 100% do equity da Project Oca por US$ 10m (6,5x EBITDA 2025E) e, incluindo step-up, o valor total da transação chega a US$ 11m (7,2x EBITDA 2025E), estruturados em 87% à vista e 13% via seller note, cujos termos ainda estão em negociação. Os searchers também estão adquirindo 50,1% do ITX (aplicativo complementar ao core business) através de earn-out estimado em 0,2x EBITDA 2025E, com pagamento previsto para 2030.\n\nDurante a diligência, os searchers identificaram um passivo tributário relevante. Recentemente, estruturaram a aquisição dos ativos da companhia para deixar os passivos com os sócios anteriores, estrutura aprovada pelo conselho jurídico dos searchers e da Cerralvo."
+        },
+        {
+          "context": "Disktrans / Redfoot Capital - Aluguel de transpaleteiras (Brasil)",
+          "structure_highlight": "2-3 parágrafos: contexto → estrutura → dependências críticas",
+          "text": "A Redfoot Capital (search fund liderado por Guilherme Ferrari, que iniciou seu período de busca no primeiro semestre de 2024) está avaliando a aquisição da Disktrans, companhia especializada em aluguel de transpaleteiras para logística interna de estoques, com frota de ~110k unidades locadas para varejistas, indústrias e players de logística.\n\nA aquisição contempla 90% do equity da Disktrans por R$ 256m, resultando em um EqV de R$ 284m (4,9x EV/EBITDA LTM jun/24), estruturados em R$ 103m em equity à vista, R$ 75m via dívida na companhia (CDI + 6%) e R$ 78m via seller's finance (corrigido por CDI, pago trimestralmente após 15 meses do closing até 2029). Com essa estrutura, a empresa atingiria 2,2x Net Debt/EBITDA 2024E.\n\nA companhia possui dependência crítica da Paletrans Empilhadeiras (mesmo grupo do fundador) para fornecimento das transpaleteiras. O searcher está negociando amarras contratuais estipulando preços fixos e descontos de 30-40% vs. competidores, cujos termos ainda estão em negociação."
+        },
+        {
+          "context": "TSE / Minerva Capital - Automação industrial (Brasil)",
+          "structure_highlight": "2 parágrafos: contexto → estrutura",
+          "text": "A Minerva Capital (search fund liderado por Pedro Dorea, que iniciou seu período de busca no segundo semestre de 2024) está avaliando a aquisição da TSE, uma companhia especializada em automação industrial com atuação nacional, oferecendo soluções integradas desde compra de componentes até instalação e integração em fábricas dos setores de F&B, agro e pharma.\n\nA aquisição contempla 85% do equity da TSE por um EV de R$ 138m (3,5x EBITDA mai/25 LTM) e, incluindo custos de transação, o valor total da transação é estruturado em R$ 67m à vista (1,7x EBITDA), seller note de R$ 50m (prazo de 4 anos, ajustado por IPCA) e earn-out de até R$ 36m condicionado ao crescimento de receita (com pagamento de earn-out, o múltiplo de entrada iria para 4,6x EBITDA). A transação será realizada sem endividamento, com toda a dívida atual liquidada pelo vendedor no closing."
+        }
+      ]
+    },
+    
+    "mercado": {
+      "title": "Mercado",
+      "agent_file": "mercado_agent.py",
+      "structure": {
+        "paragraphs": "3-4",
+        "description": "§1: Tamanho e crescimento | §2: Dinâmica competitiva | §3: Posicionamento"
+      },
+      "tone": "analítico, baseado em dados, objetivo",
+      "facts_sections_used": {
+        "identification": {
+          "mandatory": ["company_name"],
+          "recommended": ["business_description"]
+        },
+        "market": {
+          "mandatory": ["market_size_brl", "market_growth_cagr", "fragmentation_level"],
+          "recommended": ["market_drivers", "main_competitors", "market_growth_period", "barriers_to_entry", "competitor_count"]
+        },
+        "qualitative": {
+          "mandatory": [],
+          "recommended": ["market_share_pct", "market_positioning", "industry_trends", "competitive_advantages"]
+        }
+      },
+      "writing_guidelines": [
+        "Sempre incluir tamanho de mercado com unidade (R$ bi/mi)",
+        "Mencionar CAGR com período de referência",
+        "Descrever nível de fragmentação quantitativamente (ex: top 5 = 30%)",
+        "Posicionar a empresa no contexto do mercado",
+        "Incluir fonte dos dados quando disponível",
+        "Destacar tendências relevantes para a tese"
+      ],
+      "data_format": {
+        "market_size": "R$ X bilhões/milhões anuais",
+        "growth": "CAGR de X% (20YY-20ZZ)",
+        "market_share": "X% do mercado endereçável/total",
+        "fragmentation": "Top N players detêm X% do mercado"
+      },
+      "examples": [
+        {
+          "context": "Mercado fragmentado - alto crescimento",
+          "text": "O mercado brasileiro de logística especializada é estimado em R$ 45 bilhões anuais, com crescimento projetado de 8-10% ao ano segundo a Associação Brasileira de Logística, impulsionado pelo aumento do e-commerce e complexidade das cadeias de suprimento. O segmento de cargas de alto valor agregado representa aproximadamente R$ 12 bilhões deste total.\n\nO mercado é altamente fragmentado, com centenas de operadores regionais e os 10 maiores players detendo cerca de 30% de participação. A competição é baseada em confiabilidade, rastreabilidade e especialização setorial. As principais barreiras de entrada incluem certificações de segurança, seguros robustos e reputação junto a clientes corporativos.\n\nA TransLog possui aproximadamente 0,5% do mercado endereçável, posicionada como líder regional no Sul (market share estimado de 35% no segmento automotivo/eletrônicos). Os principais competidores são operadores locais sem presença nacional e algumas divisões de grandes transportadoras que não têm foco exclusivo em alto valor agregado."
+        },
+        {
+          "context": "Software empresarial - mercado pulverizado",
+          "text": "O mercado de software ERP para PMEs no Brasil movimenta aproximadamente R$ 8 bilhões por ano, com expectativa de crescimento de 12% a.a. nos próximos 5 anos segundo a Associação Brasileira de Software (ABES), impulsionado pela digitalização de processos e obrigatoriedade de emissão eletrônica de notas fiscais. O segmento de ERPs para indústrias de transformação representa cerca de R$ 2,5 bilhões deste mercado.\n\nO setor é altamente pulverizado, com mais de 200 provedores atuando nacional e regionalmente. Os 5 maiores players (TOTVS, SAP, Oracle, Sankhya, Senior) concentram cerca de 40% do mercado, sendo que TOTVS sozinha detém 18%. Os 60% restantes estão distribuídos entre dezenas de players regionais e especializados por vertical. A competição é baseada em customização setorial, suporte local e custo total de propriedade (TCO).\n\nA SoftwareCo atende atualmente 450 clientes, representando aproximadamente 0,3% do mercado endereçável estimado de 150 mil PMEs industriais no país. A empresa possui forte presença no Sul (70% dos clientes), com market share local estimado de 8% no segmento de indústrias de transformação. Os principais competidores são TOTVS (líder com 18% nacional), players regionais sem produto moderno SaaS e ERPs verticais específicos para metalurgia/plásticos."
+        },
+        {
+          "context": "Educação - mercado maduro mas regional",
+          "text": "O mercado de cursos de idiomas presenciais no Brasil movimenta R$ 6,5 bilhões anuais, com crescimento modesto de 3-5% a.a. segundo o Sindicato das Escolas de Idiomas. O mercado vem passando por transformação devido à competição de plataformas 100% online (Duolingo, Babbel) que capturam principalmente público jovem (15-25 anos), enquanto o presencial mantém força em adultos profissionais (25-45 anos) que valorizam interação ao vivo.\n\nA indústria é regionalizada com aproximadamente 5 mil escolas em operação no país. As grandes redes nacionais (CNA, CCAA, Wizard) representam cerca de 25% do mercado, enquanto redes regionais e escolas independentes concentram os demais 75%. A competição é baseada em metodologia, localização (proximidade residência/trabalho), reputação e infraestrutura tecnológica. Barreiras de entrada moderadas incluem investimento em unidades (R$ 300-500 mil por unidade) e desenvolvimento de metodologia própria.\n\nA EduTech Brasil opera 12 unidades concentradas no Sul do Brasil (8 cidades em SC, RS e PR), atendendo aproximadamente 3.500 alunos ativos. Estima-se market share local de 5-7% nas cidades onde atua, posicionada como alternativa premium (ticket R$ 450/mês vs R$ 300-350/mês das grandes redes). Os principais competidores são CNA e CCAA (presentes em 6 das 8 cidades), redes locais menores e crescente pressão de plataformas online que oferecem cursos por R$ 50-100/mês."
+        }
+      ]
+    },
+    
+    "empresa": {
+      "title": "A Empresa / O Negócio",
+      "agent_file": "empresa_agent.py",
+      "structure": {
+        "paragraphs": "3-4",
+        "description": "§1: Modelo e produtos | §2: Clientes | §3: Operação | §4: Equipe"
+      },
+      "tone": "descritivo, factual, detalhado",
+      "facts_sections_used": {
+        "identification": {
+          "mandatory": ["company_name"],
+          "recommended": ["company_location", "company_founding_year", "business_description"]
+        },
+        "financials_history": {
+          "mandatory": ["revenue_current_mm"],
+          "recommended": ["revenue_cagr_pct", "employees_count"]
+        },
+        "qualitative": {
+          "mandatory": ["business_model", "main_products_services", "customer_base_description"],
+          "recommended": ["key_management_team", "competitive_advantages", "revenue_mix", "client_concentration"]
+        }
+      },
+      "writing_guidelines": [
+        "Estruturar logicamente: modelo → produtos → clientes → operação → equipe",
+        "Quantificar sempre: número de clientes, funcionários, unidades",
+        "Detalhar mix de receita (recorrente vs pontual, por produto)",
+        "Mencionar concentração (top 5, top 10 clientes)",
+        "Destacar diferenciais competitivos tangíveis",
+        "Incluir background de founders/gestores-chave"
+      ],
+      "examples": [
+        {
+          "context": "Empresa de serviços B2B - Logística",
+          "text": "A TransLog opera sob modelo de contratos recorrentes (80% da receita) e projetos pontuais (20%). O portfólio é composto por: (i) contratos mensais de transporte dedicado (65% receita), (ii) armazenagem temporária (15%), e (iii) projetos especiais de logística reversa (20%). A receita atual de R$ 52,3 milhões representa um crescimento de 35% CAGR desde 2020.\n\nA base de clientes é composta por 80 empresas ativas dos setores automotivo (40%), eletrônicos (35%) e farmacêutico (25%), com boa diversificação: top 5 clientes representam 35% da receita e top 10 representam 52%. O ticket médio mensal é de R$ 45 mil, com contratos de 12-24 meses e taxa de renovação de 95%.\n\nA operação conta com 3 centros de distribuição próprios (2 em SP, 1 em PR) totalizando 12 mil m², frota de 45 veículos (25 próprios, 20 terceirizados) e equipe de 120 colaboradores. A empresa possui certificações ISO 9001 e ISO 27001, além de seguro de cargas de até R$ 5 milhões por evento. Os diferenciais competitivos incluem rastreabilidade em tempo real via plataforma proprietária e equipe técnica com média de 8 anos de experiência.\n\nO time de gestão é composto pelo founder-CEO (15 anos em logística, ex-executivo da DHL), CFO (ex-Deloitte, 10 anos em auditoria) e COO (background em operações automotivas na GM). A estrutura organizacional está profissionalizada com políticas de RH, processos documentados e KPIs operacionais bem definidos."
+        },
+        {
+          "context": "SaaS B2B - Software ERP vertical",
+          "text": "A SoftwareCo opera sob modelo de assinatura 100% SaaS com três planos tarifários (Essential, Professional, Enterprise), precificados por usuário/mês. O portfólio inclui: (i) ERP vertical para indústria manufatureira (70% da receita), (ii) módulos complementares de CRM e BI (25%), e (iii) serviços de implementação e customização (5%). O ARR atual de R$ 18,2 milhões representa crescimento de 42% YoY.\n\nA base de clientes conta com 145 empresas ativas, predominantemente PMEs do setor industrial com faturamento entre R$ 10-100 milhões. O ticket médio é de R$ 10,5 mil/mês com excelente performance em métricas SaaS: NRR de 118%, churn anual de 6%, e CAC payback de 14 meses. Top 10 clientes representam 28% do ARR, demonstrando boa diversificação.\n\nA operação é totalmente cloud-based (AWS), com equipe de 45 colaboradores distribuídos em: desenvolvimento (18 pessoas), customer success (12), vendas (8) e admin (7). A plataforma possui integração nativa com 15+ ERPs de mercado e compliance com LGPD. Diferenciais incluem interface intuitiva, time de resposta médio de 2h e roadmap de produto co-criado com clientes.\n\nO time de gestão é liderado pelo founder-CTO (12 anos em desenvolvimento, ex-Totvs), CEO contratado (ex-gerente comercial da Sankhya com 8 anos em SaaS B2B) e Head de CS (background em operações industriais). A empresa possui processos comerciais estruturados com CRM e playbooks documentados."
+        },
+        {
+          "context": "Serviços educacionais - Pré-vestibular",
+          "text": "A EduTech Brasil opera sob modelo híbrido com duas linhas de negócio: (i) cursos presenciais em 6 unidades próprias (75% da receita) e (ii) plataforma online de ensino ao vivo (25%). O portfólio inclui preparatórios para ENEM, vestibulares tradicionais e concursos públicos, com ciclos semestrais e anuais. A receita de R$ 12,8 milhões representa crescimento de 28% CAGR desde 2021.\n\nA base de alunos totaliza 1.850 matriculados ativos com ticket médio de R$ 580/mês. As unidades físicas estão concentradas em São Paulo (4), Rio de Janeiro (1) e Belo Horizonte (1), atendendo alunos de classe B e C. A taxa de renovação semestral é de 72% e NPS de 68 pontos. Top 3 cursos (ENEM extensivo, intensivo e medicina) representam 60% da receita.\n\nA operação conta com 85 professores (45 CLT, 40 PJ), 12 coordenadores pedagógicos e equipe administrativa de 18 pessoas. As 6 unidades totalizam 2.400m² de salas de aula equipadas, com capacidade instalada para 2.500 alunos. A plataforma digital possui 8 mil horas de conteúdo gravado e média de 120 aulas ao vivo por semana. Diferenciais incluem material didático proprietário atualizado anualmente e simulados mensais corrigidos via TRI.\n\nO time de gestão é composto pelo fundador-CEO (professor de matemática com 18 anos de experiência, ex-coordenador de cursinho tradicional), Diretora Pedagógica (ex-Poliedro, 12 anos em educação) e CFO (background em M&A educacional). A estrutura inclui processos de recrutamento de professores, sistema de avaliação de desempenho e dashboard de KPIs por unidade."
+        }
+      ]
+    },
+    
+    "financials": {
+      "title": "Financials",
+      "agent_file": "financials_agent.py",
+      "structure": {
+        "paragraphs": "3-5",
+        "description": "§1: Receita histórica | §2: Rentabilidade | §3: Estrutura capital | §4: Projeções | §5: Comentários"
+      },
+      "tone": "quantitativo, preciso, analítico",
+      "facts_sections_used": {
+        "identification": {
+          "mandatory": ["company_name"],
+          "recommended": []
+        },
+        "financials_history": {
+          "mandatory": ["revenue_current_mm", "ebitda_current_mm", "ebitda_margin_current_pct"],
+          "recommended": ["revenue_cagr_pct", "gross_margin_pct", "net_debt_mm", "leverage_net_debt_ebitda", "cash_conversion_pct", "financials_commentary"]
+        },
+        "projections": {
+          "mandatory": [],
+          "recommended": ["revenue_exit_mm", "revenue_cagr_projected_pct", "ebitda_exit_mm", "ebitda_margin_exit_pct"]
+        }
+      },
+      "writing_guidelines": [
+        "SEMPRE incluir valores absolutos E percentuais",
+        "Apresentar séries temporais (mínimo 2-3 anos)",
+        "Calcular e mencionar CAGR",
+        "Destacar tendências (expansão de margem, aceleração)",
+        "Explicar variações significativas",
+        "Qualificar dados (auditados, gerenciais, QofE)"
+      ],
+      "data_format": {
+        "revenue": "Receita de R$ X mm em 2024 (vs R$ Y mm em 2023, +Z%)",
+        "ebitda": "EBITDA de R$ X mm (margem de Y%)",
+        "growth": "CAGR de X% no período 20YY-20ZZ",
+        "margins": "Margem bruta de X%, margem EBITDA de Y%"
+      },
+      "examples": [
+        {
+          "context": "Serviço B2B - Crescimento com expansão de margem",
+          "text": "A empresa apresenta receita bruta de R$ 52,3 milhões em 2024 (LTM dez/24), crescimento de 28% vs 2023 (R$ 40,8 mm) e CAGR de 35% desde 2020 (R$ 23,1 mm). A receita é composta por contratos recorrentes (80%) e projetos (20%), com baixa sazonalidade trimestral (+/-5%).\n\nO EBITDA atingiu R$ 12,8 milhões em 2024 (margem de 24,5%), comparado a R$ 8,9 milhões em 2023 (margem de 21,8%) e R$ 4,2 milhões em 2021 (margem de 18,2%), evidenciando ganho consistente de escala operacional. A margem bruta expandiu de 38% (2021) para 42% (2024) devido a maior utilização da frota própria e renegociação de contratos com fornecedores.\n\nA empresa opera com dívida líquida de R$ 2,1 milhões (alavancagem de 0,2x ND/EBITDA), composta por financiamento de veículos. A conversão de caixa é de 85% do EBITDA, com capital de giro negativo de 15 dias devido ao recebimento antecipado de clientes corporativos. O CAPEX recorrente representa 8% da receita (manutenção de frota e sistemas), com CAPEX de expansão variável conforme aquisições.\n\nAs projeções contemplam receita de R$ 95 milhões em 2029 (CAGR de 13%) e margem EBITDA de 26%, refletindo crescimento orgânico de 8% a.a. mais contribuição de 3 aquisições planejadas. As premissas incluem manutenção de client mix, expansão para Centro-Oeste a partir de 2026 e eficiências operacionais via centralização de backoffice.\n\nOs números de 2024 são baseados em demonstrações gerenciais preparadas pelo CFO (ex-Deloitte). Está prevista uma Quality of Earnings com foco em reconhecimento de receita, working capital e add-backs de EBITDA."
+        },
+        {
+          "context": "SaaS B2B - Métricas de assinatura e unit economics",
+          "text": "A SoftwareCo registra ARR de R$ 18,2 milhões em dez/24, crescimento de 42% YoY (vs R$ 12,8 mm em dez/23) e CAGR de 65% desde 2021 (R$ 6,8 mm). O crescimento é impulsionado por net revenue retention de 118%, refletindo expansão de contas existentes via upsell de módulos complementares. O churn anual consolidado é de 6%, sendo 3% em contas Enterprise e 8% em SMB.\n\nO EBITDA ajustado atingiu R$ 4,1 milhões em 2024 (margem de 22,5% sobre receita reconhecida), comparado a R$ 1,9 milhões em 2023 (margem de 14,8%). A evolução de margem reflete economias de escala em infraestrutura AWS (custo/cliente caiu 35%) e redução do CAC payback de 18 para 14 meses. A margem bruta do software é de 78%, excluindo custos de implementação (margem de 35%).\n\nA empresa possui caixa líquido de R$ 800 mil sem dívida financeira. O capital de giro é positivo em 45 dias devido a cobrança antecipada anual (60% dos contratos), gerando float operacional. O LTV/CAC ratio é de 4,2x assumindo payback de 14 meses e lifetime de 5 anos. O CAPEX de desenvolvimento é capitalizado (R$ 1,2 mm/ano) e amortizado em 3 anos.\n\nAs projeções contemplam ARR de R$ 52 milhões em 2029 (CAGR de 23%) com margem EBITDA de 32%, assumindo: (i) crescimento de base de 15% a.a., (ii) NRR de 115% estável, (iii) churn annual reduzindo para 4%, e (iv) expansão para 2 verticais adjacentes a partir de 2026. O sales efficiency (CAC payback) deve melhorar para 10 meses com automação do onboarding.\n\nOs números de ARR e churn são extraídos do CRM (HubSpot) e validados contra faturamento. As métricas SaaS seguem padrão SaaS Capital, com análise de cohorts por ano de aquisição. Uma vendor due diligence técnica está planejada para validar escalabilidade da infraestrutura e qualidade do código."
+        },
+        {
+          "context": "Educação presencial - Sazonalidade e unit economics por unidade",
+          "text": "A EduTech Brasil registra receita bruta de R$ 12,8 milhões em 2024 (ciclo completo jan-dez), crescimento de 18% vs 2023 (R$ 10,8 mm) e CAGR de 28% desde 2021 (R$ 6,2 mm). A receita apresenta sazonalidade com picos em fev-mar (início de ciclos semestrais) e vale em jan e jul. O modelo de reconhecimento segue regime de competência proporcional ao número de aulas ministradas.\n\nO EBITDA foi de R$ 2,3 milhões em 2024 (margem de 18%), comparado a R$ 1,6 milhões em 2023 (margem de 15%). A expansão de margem é atribuída à maior ocupação das unidades (de 68% para 74% da capacidade) e redução de custos variáveis de marketing (de 18% para 14% da receita). A margem bruta de contribuição por aluno é de 62%, descontando custos de professores e material didático.\n\nA empresa possui dívida líquida de R$ 1,5 milhões (alavancagem de 0,7x ND/EBITDA), composta por financiamento imobiliário de 2 unidades próprias. O capital de giro é neutro, com recebimento de mensalidades via boleto (prazo médio de 12 dias) e pagamento de professores em D+5. O CAPEX recorrente é de 5% da receita (manutenção de equipamentos e atualização de conteúdo), com CAPEX de expansão variável por abertura de unidade (R$ 400-500 mil/unidade).\n\nAs projeções indicam receita de R$ 24 milhões em 2029 (CAGR de 13%) com margem EBITDA de 22%, assumindo: (i) 2 novas unidades (2026 e 2028), (ii) ocupação média de 80%, (iii) reajuste anual de 6%, e (iv) crescimento do canal online para 35% da receita. O breakeven por unidade ocorre com 180 alunos (60% de ocupação), atingido em média no 8º mês de operação.\n\nOs números são baseados em demonstrações gerenciais mensais com controles de alunos ativos por sistema proprietário. Foi realizada conciliação de matrículas vs faturamento e análise de cohorts de renovação por semestre. Está prevista validação de add-backs relacionados a pró-labore dos sócios e despesas não-recorrentes de inauguração."
+        }
+      ]
+    },
+    
+    "transacao": {
+      "title": "Transação / Tese de Investimento",
+      "agent_file": "transacao_agent.py",
+      "structure": {
+        "paragraphs": "3-4",
+        "description": "§1: Estrutura e valuation | §2: Tese (4-6 bullets) | §3: Riscos | §4: Próximos passos"
+      },
+      "tone": "objetivo, equilibrado, data-driven",
+      "facts_sections_used": {
+        "identification": {
+          "mandatory": ["company_name"],
+          "recommended": []
+        },
+        "transaction_structure": {
+          "mandatory": ["stake_pct", "ev_mm", "multiple_ev_ebitda"],
+          "recommended": ["equity_value_mm", "cash_payment_mm", "seller_note_mm", "earnout_mm"]
+        },
+        "qualitative": {
+          "mandatory": ["investment_thesis_summary", "key_risks"],
+          "recommended": ["value_creation_plan", "competitive_advantages"]
+        },
+        "returns": {
+          "mandatory": ["irr_pct", "moic"],
+          "recommended": ["holding_period_years"]
+        },
+        "projections": {
+          "mandatory": [],
+          "recommended": ["exit_year", "exit_multiple_ev_ebitda"]
+        }
+      },
+      "writing_guidelines": [
+        "Iniciar com valores e múltiplos da transação",
+        "Tese em 4-6 bullets objetivos e quantificados",
+        "Cada bullet = 1 driver de valor específico",
+        "Riscos devem ser honestos e específicos",
+        "Mencionar comparáveis quando relevante",
+        "Conectar tese com value creation plan"
+      ],
+      "tese_structure": {
+        "format": "bullets numerados",
+        "count": "4-6 pontos",
+        "template_bullets": [
+          "Posicionamento competitivo: Líder regional com X% market share, contratos de longo prazo",
+          "Track record: CAGR de X% em receita com expansão de margem de Y% para Z%",
+          "Modelo recorrente: X% receita recorrente, churn de apenas Y% a.a.",
+          "Oportunidade M&A: Pipeline de X alvos que podem adicionar R$ Y mm receita",
+          "Expansão geográfica: Potencial de replicar modelo em [região]",
+          "Equipe: Gestão experiente com founder-CEO de [X anos no setor]"
+        ]
+      },
+      "examples": [
+        {
+          "context": "Transação de controle com M&A",
+          "text": "Estamos propondo aquisição de 80% do capital por Equity Value de R$ 58 milhões, representando EV de R$ 52 milhões (considerando caixa líquido de R$ 6mm) e múltiplo de 4,1x EV/EBITDA 2024. A estrutura contempla pagamento à vista de R$ 35mm, seller note de R$ 10mm (5 anos, CDI+3%) e earnout de até R$ 7mm condicionado a receita de R$ 60mm em 2026. O valuation está em linha com transações comparáveis no setor de logística especializada (4,0-5,5x EV/EBITDA).\n\nTese de Investimento:\n1) Líder regional consolidado com 35% de market share no Sul, contratos de longo prazo com blue-chips e alto switching cost devido à criticidade da operação e certificações (ISO 9001/27001)\n2) Track record sólido: CAGR de 35% em receita (2020-2024) com expansão de margem EBITDA de 18% para 24,5%, demonstrando escalabilidade operacional e alavancagem fixos\n3) Modelo recorrente e previsível: 80% receita em contratos mensais com churn de apenas 5% a.a., taxa de renovação de 95% e visibilidade de pipeline de R$ 8mm para 2025\n4) Pipeline de consolidação: 5 alvos mapeados (ticket de R$ 5-15mm) que podem adicionar R$ 30-40mm receita com sinergias estimadas em 15-20% via compartilhamento de CDs e backoffice\n5) Expansão geográfica: potencial de replicar modelo no Centro-Oeste (mercado de R$ 8bi) aproveitando ativos e know-how, com abertura de novo CD em Goiânia planejada para 2H26\n6) Equipe profissionalizada: founder-CEO com 15 anos no setor (ex-DHL), CFO ex-big4 e estrutura de governança com board e processos documentados\n\nProjetamos IRR de 28% e MOIC de 3,2x em holding period de 5 anos, assumindo saída em 2029 a 5,0x EV/EBITDA (vs entrada de 4,1x) com receita de R$ 95mm e margem EBITDA de 26%. O case base assume 2 aquisições concluídas e expansão para Centro-Oeste.\n\nPrincipais Riscos:\n• Concentração de receita: top 5 clientes representam 35% (mitigação: diversificação via M&A e novos setores)\n• Dependência do founder-CEO: estrutura de earn-out de 3 anos e contratação de COO para transição planejada\n• Execução de M&A: identificação, negociação e integração de aquisições (mitigação: pipeline mapeado e advisor especializado)\n• Competição de players maiores em licitações corporativas (mitigação: foco em nichos especializados e relacionamento)\n• Regulatório: mudanças em normas de transporte e seguro (monitoramento contínuo com consultoria especializada)"
+        },
+        {
+          "context": "SaaS - Valuation baseado em ARR com múltiplo premium",
+          "text": "Estamos propondo aquisição de 75% do capital por Equity Value de R$ 28 milhões, representando EV de R$ 27,2 milhões (caixa líquido de R$ 800k) e múltiplo de 1,5x ARR ou 6,6x EV/EBITDA 2024. A estrutura contempla R$ 20mm à vista, R$ 5mm em seller note (4 anos, IPCA+6%) e earnout de até R$ 3mm vinculado a atingimento de ARR de R$ 24mm em 2026 com churn < 5%. O múltiplo de ARR está conservador comparado a benchmarks SaaS B2B (2,0-4,0x ARR), refletindo porte e estágio da empresa.\n\nTese de Investimento:\n1) Plataforma líder em nicho vertical de ERP manufatureiro com 145 clientes ativos, NPS de 72 e NRR de 118%, demonstrando forte product-market fit e potencial de expansão via upsell\n2) Crescimento acelerado: ARR crescendo 42% YoY com métricas SaaS saudáveis (churn de 6%, CAC payback de 14 meses, LTV/CAC de 4,2x), indicando modelo escalável e eficiente\n3) Margem em expansão: EBITDA margin de 22,5% (2024) vs 14,8% (2023) com trajetória para 30%+ conforme escala, beneficiando-se de estrutura de custos variável em cloud\n4) Oportunidade de verticalização: roadmap validado para expansão em 2 verticais adjacentes (distribuição e varejo especializado) que podem adicionar 200+ clientes em 24-36 meses\n5) Eficiência de go-to-market: CAC payback pode reduzir para 8-10 meses com automação de onboarding, inbound marketing estruturado e inside sales, liberando caixa para crescimento\n6) Equipe técnica forte: fundador-CTO com expertise profunda em ERP, CEO contratado com background comercial sólido e baixo turnover de desenvolvedores (< 10% a.a.)\n\nProjetamos IRR de 32% e MOIC de 3,8x em holding period de 5 anos, assumindo saída a 2,5x ARR em 2029 (ARR de R$ 52mm) e margem EBITDA de 32%. O case contempla investimento de R$ 2mm/ano em produto e marketing para acelerar crescimento.\n\nPrincipais Riscos:\n• Churn risk: concentração em PMEs pode elevar churn em cenário recessivo (mitigação: foco em contas Enterprise com contratos plurianuais)\n• Dependência tecnológica: plataforma em stack único com founder-CTO (mitigação: contratação de CTO adicional e documentação técnica)\n• Competição de incumbents: Totvs, Sankhya podem intensificar competição no nicho (mitigação: especialização vertical e time-to-value superior)\n• Execução de product roadmap: expansão para novas verticais pode demandar R&D adicional (validação prévia com 10 beta testers)\n• Retenção de key talents: desenvolvedores seniores são críticos e disputados no mercado (plano de equity para time técnico + cultura)"
+        },
+        {
+          "context": "Educação - Múltiplo moderado sem earnout",
+          "text": "Estamos propondo aquisição de 100% do capital por Enterprise Value de R$ 11 milhões, representando múltiplo de 4,8x EV/EBITDA 2024. A estrutura é 100% cash na closing sem earnout, refletindo menor complexidade operacional e perfil de founders que desejam saída total. O valuation está alinhado com transações no setor educacional presencial (4,0-6,0x EV/EBITDA).\n\nTese de Investimento:\n1) Posicionamento regional sólido em São Paulo com 6 unidades estabelecidas, brand equity construído em 12 anos e taxa de aprovação em vestibulares concorridos de 78%, gerando word-of-mouth orgânico\n2) Modelo de unit economics validado: cada unidade atinge breakeven com 180 alunos (60% capacidade) em 8 meses, com margem de contribuição de 62% e capacidade instalada para crescer 35% sem CAPEX adicional\n3) Expansão replicável: potencial de abrir 4-5 novas unidades em regiões metropolitanas (RJ, BH, Curitiba) seguindo playbook documentado, adicionando R$ 8-10mm de receita em 3 anos\n4) Canal online complementar: plataforma digital com 8k horas de conteúdo pode ser monetizada via modelo B2C standalone ou white-label para outras instituições, representando nova linha de receita\n5) Consolidação setorial: mercado fragmentado com 500+ cursinhos regionais oferece oportunidades de tuck-in acquisitions a múltiplos atrativos (3,0-4,0x EBITDA)\n6) Profissionalização de gestão: implementação de CRM educacional, dashboard de KPIs por unidade e processos de recrutamento/treinamento de professores pode melhorar ocupação de 74% para 85%+\n\nProjetamos IRR de 26% e MOIC de 2,9x em holding period de 5 anos, assumindo saída a 5,5x EV/EBITDA com receita de R$ 24mm e margem EBITDA de 22%. O caso base assume 2 novas unidades e 1 aquisição.\n\nPrincipais Riscos:\n• Sazonalidade e ciclicidade: receita concentrada em ciclos semestrais com inadimplência potencial em crises (mitigação: cobrança antecipada e diversificação para concursos públicos)\n• Dependência de professores-chave: 10-15 professores \"estrela\" são críticos para reputação (mitigação: contratos de exclusividade, plano de equity e backup teachers)\n• Competição de plataformas digitais: Descomplica, Me Salva com preço inferior (mitigação: foco em experiência presencial premium e mentoria personalizada)\n• Regulatório educacional: mudanças em ENEM ou formato de vestibulares (monitoramento via associações setoriais e adaptação ágil de conteúdo)\n• Execução de novas unidades: seleção de ponto e ramp-up de alunos (validação prévia de catchment area com pesquisa)"
+        }
+      ]
+    },
+    
+    "pontos_aprofundar": {
+      "title": "Pontos a Aprofundar",
+      "agent_file": "pontos_aprofundar_agent.py",
+      "structure": {
+        "format": "lista organizada por categoria",
+        "categories": ["Comercial", "Financeiro", "Operacional", "Legal/Regulatório", "Estratégico", "Equipe/Organização"],
+        "items_per_category": "2-3 itens específicos",
+        "description": "Diligências críticas organizadas por área funcional"
+      },
+      "tone": "específico, acionável, orientado a validação",
+      "facts_sections_used": {
+        "identification": {
+          "mandatory": ["company_name"],
+          "recommended": ["business_description"]
+        },
+        "transaction_structure": {
+          "mandatory": [],
+          "recommended": ["seller_note_terms", "earnout_conditions"]
+        },
+        "qualitative": {
+          "mandatory": ["key_risks"],
+          "recommended": ["customer_concentration", "supplier_concentration"]
+        },
+        "projections": {
+          "mandatory": [],
+          "recommended": ["growth_initiatives", "margin_improvement_plan"]
+        }
+      },
+      "writing_guidelines": [
+        "Perguntas ESPECÍFICAS, não genéricas",
+        "Organizar por categoria funcional",
+        "Focar em pontos críticos para decisão",
+        "Incluir metodologia quando relevante",
+        "Priorizar validações que podem ser deal-breakers",
+        "Usar formato: 'Validar X via Y' ou 'Analisar Z com foco em W'"
+      ],
+      "examples": [
+        {
+          "context": "Search Fund - Serviços B2B Logística",
+          "text": "Comercial:\n• Entrevistas com top 10 clientes (45% da receita) para validar satisfação (NPS), switching costs reais e potencial de cross-sell de armazenagem\n• Análise detalhada de churn por cohort e drivers de cancelamento, com foco em clientes perdidos nos últimos 24 meses\n• Validação de pipeline comercial (R$ 8mm) com análise de taxa de conversão histórica e tempo médio de fechamento\n\nFinanceiro:\n• Quality of Earnings com foco em: (i) reconhecimento de receita (critérios e cortes), (ii) ajustes de EBITDA (add-backs recorrentes vs não-recorrentes), (iii) working capital normalizado\n• Validação de estrutura de capital com análise de passivos ocultos, contingências e contratos de leasing/financiamento\n• Projeções bottom-up por linha de negócio com sensibilidades de crescimento (organic vs M&A) e margem\n\nOperacional:\n• Assessment técnico de frota e CDs: (i) condição dos ativos, (ii) CAPEX de manutenção vs expansão, (iii) capacidade ociosa e escalabilidade para 2x receita\n• Mapeamento de dependências de pessoas-chave (founder-CEO, diretor comercial, gerentes de CD) com plano de transição e mitigação\n• Validação de certificações ISO 9001/27001: escopo, validade, auditorias recentes e não-conformidades\n\nLegal/Regulatório:\n• Due diligence legal completa com foco em: (i) contratos-chave (top 10 clientes, fornecedores críticos, leasing), (ii) litígios e contingências trabalhistas/tributárias, (iii) compliance ambiental e alvarás\n• Verificação de propriedade de ativos (veículos, equipamentos) e garantias reais\n• Análise de estrutura acionária, acordos de sócios e drag/tag rights\n\nEstratégico:\n• Validação de pipeline de M&A: (i) financial overview dos 5 alvos mapeados, (ii) fit estratégico e potencial de sinergias, (iii) apetite dos sellers e múltiplos esperados\n• Stress test competitivo considerando: (i) entrada de players maiores (Fedex, DHL) no segmento, (ii) desintermediação por clientes grandes, (iii) pressão de preços\n• Análise de viabilidade de expansão Centro-Oeste: tamanho de mercado, competição local, CAPEX necessário e breakeven\n\nEquipe/Organização:\n• Assessment da equipe de gestão: competências, gaps críticos (ex: M&A, expansão), plano de contratações (COO, diretor M&A)\n• Estruturação de earn-out e incentivos de longo prazo para founder-CEO (3 anos) e time comercial\n• Validação de cultura organizacional via entrevistas com 10-15 funcionários (turnover, satisfação, alinhamento com estratégia)"
+        },
+        {
+          "context": "SaaS B2B - Software ERP",
+          "text": "Comercial:\n• Análise profunda de cohorts de clientes por ano de aquisição: churn rate, NRR, padrões de expansão e contração de ARR ao longo do lifecycle\n• Validação de métricas-chave via call com 15-20 clientes (satisfação, uso da plataforma, features mais valiosas, probabilidade de renovação, apetite para novos módulos)\n• Assessment de pipeline por estágio de funil (leads, demos, trials, proposals) com análise de taxa de conversão Sales Qualified Lead → Customer e sales cycle length\n\nFinanceiro:\n• Vendor Due Diligence financeira focada em: (i) reconciliação ARR vs receita reconhecida (IFRS 15), (ii) MRR build por cohort, (iii) deferred revenue e implicações de caixa, (iv) unit economics por segmento (SMB vs Enterprise)\n• Validação de métricas SaaS: CAC calculation (marketing + sales totalmente alocados), LTV assumptions (churn rate, gross margin, discount rate), payback period histórico por canal de aquisição\n• Análise de burn rate e runway: projeção de caixa operacional considerando hiring plan, marketing investment e R&D capitalizado\n\nOperacional/Tecnológico:\n• Tech Due Diligence com foco em: (i) arquitetura e escalabilidade (pode suportar 10x base?), (ii) tech debt assessment, (iii) security e compliance (LGPD, SOC2), (iv) disaster recovery e backup\n• Code review com foco em qualidade, cobertura de testes automatizados (unit, integration), CI/CD pipeline e documentação técnica\n• Análise de infraestrutura cloud: custos AWS por cliente/receita, otimização de recursos, contracts com providers e lock-in risks\n• Assessment de product roadmap: alinhamento com customer feedback (product-market fit), viabilidade técnica das features planejadas, R&D allocation (manutenção vs inovação)\n\nLegal/Regulatório:\n• Revisão de contratos com clientes: (i) termos-padrão de SLA, uptime guarantees e penalties, (ii) cláusulas de renovação automática e notice period, (iii) propriedade de dados e IP\n• Compliance LGPD: mapeamento de dados pessoais, políticas de privacidade, DPO designado, processos de consentimento e direito ao esquecimento\n• Validação de propriedade intelectual: code ownership (funcionários e freelancers), licenças de bibliotecas open-source, patents ou trade secrets\n\nEstratégico:\n• Validação de vertical expansion strategy: (i) entrevistas com 10 prospects das verticais-alvo (distribuição, varejo), (ii) análise competitiva detalhada, (iii) GAP analysis de features necessárias vs atuais\n• Assessment de canais de aquisição: eficiência de CAC por canal (inbound, outbound, partnerships, product-led growth), oportunidades de otimização e automação\n• Análise de churn risk por segmento: drivers de cancelamento (preço, features, suporte, usage), initiatives de customer success para reduzir para < 4%\n\nEquipe/Organização:\n• Tech talent assessment: entrevistas técnicas com 5-8 desenvolvedores seniores, análise de retention (turnover, equity plan, salários vs mercado)\n• Avaliação de dependência do founder-CTO: bus factor analysis, documentação técnica, possibilidade de contratar CTO adicional ou VP Engineering\n• Culture fit: entrevistas com 15-20 pessoas de diferentes áreas para validar valores, alignment com growth, work-life balance"
+        },
+        {
+          "context": "Educação - Pré-vestibular presencial",
+          "text": "Comercial:\n• Survey com 100+ alunos atuais e ex-alunos: drivers de escolha (brand, localização, professores, preço), NPS, taxa de indicação orgânica e feedback sobre concorrentes\n• Análise de cohorts de renovação semestral: retention rate por tipo de curso (extensivo vs intensivo), unidade, faixa de preço e perfil socioeconômico\n• Validação de capacidade de precificação: elasticidade-preço via análise de histórico de reajustes, comparação com concorrentes locais e disposição a pagar\n\nFinanceiro:\n• Quality of Earnings educacional focada em: (i) reconhecimento de receita (regime de competência vs caixa), (ii) tratamento de inadimplência e provisões, (iii) add-backs de pró-labore dos sócios vs salário de mercado para CEO profissional\n• Validação de unit economics por unidade: breakeven analysis, margem de contribuição, payback period de abertura, sensitivity de ocupação (60% vs 80% vs 100%)\n• Working capital e sazonalidade: análise de fluxo de caixa mensal considerando picos de matrícula (fev/jul) e períodos de vale (jan/dez)\n\nOperacional:\n• Assessment de qualidade pedagógica: (i) entrevistas com 10-15 professores-chave sobre metodologia, material didático, taxa de aprovação, (ii) benchmark de performance vs concorrentes (taxa de aprovação em vestibulares top-tier)\n• Análise de capacidade instalada: ocupação atual vs máxima por unidade, possibilidade de adicionar turmas/horários sem CAPEX, condições de infraestrutura (salas, equipamentos)\n• Validação de plataforma digital: usage metrics (horas assistidas/aluno, engagement), qualidade técnica (bugs, uptime), roadmap de melhorias\n\nLegal/Regulatório:\n• DD legal educacional: (i) alvarás de funcionamento e licenças municipais por unidade, (ii) contratos de locação (prazo, reajuste, opção de renovação), (iii) contratos com professores (CLT vs PJ, cláusulas de exclusividade, IP sobre material)\n• Contingências trabalhistas: passivos relacionados a professores (horas extras, vínculo empregatício de PJs), histórico de reclamações e acordos\n• Compliance com regulação educacional: registro no MEC (se aplicável), direitos autorais sobre material didático, políticas de matrícula e cancelamento\n\nEstratégico:\n• Validação de expansion plan: (i) análise de catchment area para novas unidades (demografia, renda, concorrência), (ii) CAPEX e timeline de abertura, (iii) estratégia de marketing de lançamento e ramp-up esperado\n• Assessment de M&A targets: financial overview de 3-5 cursinhos regionais (receita, margem, fit geográfico), preliminary valuation e apetite dos sellers\n• Análise de competição digital: ameaça de Descomplica, Me Salva, Kumon, impacto em precificação e captação, estratégia de diferenciação (presencial premium + digital complementar)\n• Viabilidade de white-label: tamanho de mercado de B2B2C (escolas, faculdades), modelo de precificação, investimento necessário em sales\n\nEquipe/Organização:\n• Professor retention strategy: análise de turnover, drivers de saída, plano de incentivos (bonus por aprovação, equity, carreira), backup de professores-chave\n• Assessment de equipe administrativa: gaps em marketing digital, CRM educacional, BI/analytics, plano de contratações prioritárias\n• Transição de founders: founders querem sair 100%, necessidade de contratar CEO com expertise em educação + operações multi-unidade, timeline e custo de search"
+        }
+      ]
+    }
+  },
+  
+  "global_guidelines": {
+    "formatting": {
+      "font": "Aptos Narrow 10-11pt",
+      "spacing": "1.0-1.15 entrelinhas",
+      "margins": "2.0-2.5cm",
+      "emphasis": "**negrito** para empresa, valores-chave, múltiplos"
+    },
+    "tone": {
+      "perspective": "primeira pessoa plural ('estamos', 'entendemos')",
+      "style": "analítico, objetivo, data-driven, balanceado",
+      "avoid": [
+        "Linguagem promocional",
+        "Superlativos sem fundamento",
+        "Generalizações vagas",
+        "Jargões sem contexto"
+      ],
+      "prefer": [
+        "Dados quantitativos sempre",
+        "Comparações temporais (YoY, CAGR)",
+        "Evidências factuais",
+        "Tom equilibrado (upside E riscos)"
+      ]
+    },
+    "data_quality": {
+      "precision": "1 casa decimal para R$ mm, 1-2 casas para %",
+      "dates": "formato brasileiro (ex: dez/24, 2T25)",
+      "sources": "citar fonte quando dados de mercado",
+      "gaps": "ser transparente ('ainda em discussão', 'não auditado')"
+    },
+    "integration_with_agents": {
+      "usage": "Este JSON serve como REFERÊNCIA e VALIDAÇÃO para os agentes existentes",
+      "when_to_use": [
+        "Validar se facts extraídos têm campos necessários",
+        "Verificar cobertura de fields antes de geração",
+        "Enriquecer prompts com exemplos estruturados",
+        "QA pós-geração: comparar output com guidelines"
+      ],
+      "when_not_to_use": [
+        "NÃO substituir lógica dos agentes existentes",
+        "NÃO sobrescrever prompts hard-coded nos agentes"
+      ]
+    }
+  }
+}

@@ -1,0 +1,31 @@
+Extraia HISTÓRICO FINANCEIRO:
+
+RECEITA:
+- revenue_current_mm: Receita mais recente (APENAS NÚMERO decimal em MM, ex: 25.5)
+- revenue_cagr_pct: CAGR de receita (APENAS NÚMERO decimal, ex: 43.0, sem "%")
+- revenue_cagr_period: Período do CAGR (texto, ex: "2019-2024")
+- revenue_base_year: Ano inicial (APENAS NÚMERO inteiro, ex: 2019)
+- revenue_base_year_mm: Receita no ano base (APENAS NÚMERO decimal em MM)
+
+EBITDA:
+- ebitda_current_mm: EBITDA mais recente (APENAS NÚMERO decimal em MM)
+- ebitda_margin_current_pct: Margem EBITDA atual (APENAS NÚMERO decimal, ex: 15.5, sem "%")
+- ebitda_cagr_pct: CAGR de EBITDA (APENAS NÚMERO decimal, se mencionado)
+- ebitda_base_year_mm: EBITDA no ano base (APENAS NÚMERO decimal em MM, se mencionado)
+
+DÍVIDA E ALAVANCAGEM:
+- net_debt_mm: Dívida líquida (APENAS NÚMERO decimal em MM)
+- leverage_net_debt_ebitda: Alavancagem Dívida/EBITDA (APENAS NÚMERO decimal, ex: 2.5, sem "x")
+
+OUTRAS MÉTRICAS (se mencionadas):
+- cash_conversion_pct: Conversão de caixa (APENAS NÚMERO decimal, ex: 85.0, sem "%")
+- gross_margin_pct: Margem bruta (APENAS NÚMERO decimal, sem "%")
+- opex_pct_revenue: Opex como % da receita (APENAS NÚMERO decimal)
+- employees_count: Número de funcionários (APENAS NÚMERO inteiro)
+- financials_commentary: Análise qualitativa das variações (texto)
+
+FORMATO CRÍTICO:
+- Valores monetários: APENAS números decimais (ex: 14.9, não "14.9M")
+- Percentuais: APENAS números decimais (ex: 15.5, não "15.5%")
+- Anos: APENAS números inteiros (ex: 2024)
+- Use null para campos não encontrados

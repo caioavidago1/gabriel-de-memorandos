@@ -1,0 +1,16 @@
+Extraia informações do GESTOR/SEARCHER (análise dos searchers para Memo Completo Search Fund):
+
+CAMPOS DO SCHEMA (extrair com estes nomes exatos):
+
+- searcher_name: Nome(s) do(s) searcher(s) (pode ser múltiplos separados por vírgula)
+- searcher_background: Formação acadêmica e histórico profissional dos searchers (texto)
+- searcher_experience: Experiência relevante: anos, empresas anteriores, cargos (texto)
+- searcher_assessment: Resultados de assessment psicológico ou avaliação de perfil (texto, se disponível)
+- searcher_complementarity: Análise de complementaridade da dupla de searchers (texto, se aplicável)
+- searcher_references: Referências e validações (ex-empregadores, mentores, etc.) (texto)
+- searcher_track_record: Histórico de deals anteriores ou experiências relevantes (texto)
+
+INSTRUÇÕES:
+1. Busque em seções: team, searcher, management, background, assessment
+2. Use null para campos não encontrados
+3. Textos devem ser objetivos e baseados no documento

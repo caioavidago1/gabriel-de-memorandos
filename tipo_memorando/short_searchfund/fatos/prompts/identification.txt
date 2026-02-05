@@ -1,0 +1,46 @@
+Extraia informações de IDENTIFICAÇÃO:
+
+IMPORTANTE - EXTRAÇÃO IMPLÍCITA:
+Estes campos raramente aparecem com labels explícitos como "Nome do searcher: Daniel".
+Eles aparecem de forma NATURAL no documento. Procure por:
+- CAPA / TÍTULO / PRIMEIRAS PÁGINAS: O nome da casca (FIP) e do deal costumam estar na capa.
+  Exemplo: "Syonet Deal" / "ATLANTE CAPITAL SEARCH FUND" → fip_casca = "Atlante Capital Search Fund"
+- SEÇÕES INICIAIS: Nomes próprios que lideram o search (searchers) podem aparecer sem rótulo.
+  Exemplo: "Daniel lidera a busca" ou "Fernando Ponce e Eduardo Haro" em contexto de search.
+- INFERIR DE CONTEXTO: "search fund brasileiro" → investor_nationality = "brasileiro"
+  Não espere frases como "a nacionalidade é brasileira".
+
+CAMPOS OBRIGATÓRIOS:
+- company_name: Nome completo e oficial da empresa. Procure por:
+  * Nomes próprios no título, capa ou início do documento
+  * Nomes mencionados repetidamente no texto
+  * Nomes antes de "opera no setor", "atua em", "fundada em"
+  * Exemplos: "Hero Seguros", "Bridge One", "Project X"
+- business_description: Descrição do negócio em 2-3 linhas
+- company_location: Cidade e estado (ex: "São Paulo, SP")
+- deal_context: Como surgiu a oportunidade, relacionamento com vendedor
+
+CAMPOS ESPECÍFICOS PARA SEARCH FUND (EXTRAIR SE PRESENTES NO CONTEXTO):
+- fip_casca: FIP (casca) ou veículo jurídico. Onde encontrar:
+  * CAPA/TÍTULO: Nome em destaque (ex: "ATLANTE CAPITAL SEARCH FUND", "Eunoia", "Minerva Capital")
+  * Procure por: "FIP", "casca", "veículo", ou nome em MAIÚSCULAS/negrito no início
+  * Exemplo: "Syonet Deal / ATLANTE CAPITAL SEARCH FUND" → fip_casca = "Atlante Capital Search Fund"
+- searcher_name: Nome(s) do(s) searcher(s). Onde encontrar:
+  * Frases explícitas: "search liderado por [NOME]", "searcher [NOME]"
+  * IMPLÍCITO: Nomes próprios em contexto de liderança do search (ex: seção "Sobre os Searchers", assinaturas)
+  * Pode ser um ou mais nomes (ex: "Fernando Ponce e Eduardo Haro", "Pedro Dorea")
+- search_start_date: Início do período de busca. Procure por:
+  * "iniciou o search em", "período de busca no 2S2024", "busca iniciada em"
+  * Formatos: "1S2023", "segundo semestre 2023", "2S2024", "Janeiro 2024"
+- investor_nationality: Nacionalidade. Procure por:
+  * "search fund brasileiro", "search fund mexicano" → extrair o adjetivo
+  * Ou "nacionalidade", "origem", "mercado brasileiro" em contexto
+
+CAMPOS OPCIONAIS (apenas se mencionados):
+- company_founding_year: Ano de fundação (número inteiro, formato YYYY, ex: 2019)
+
+FORMATO CRÍTICO:
+- Valores numéricos: APENAS números (ex: 2019, não "ano 2019")
+- Use null para campos não encontrados
+- Use valores EXATOS do documento
+- Para datas, mantenha formato original do documento

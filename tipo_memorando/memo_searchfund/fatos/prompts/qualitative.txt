@@ -1,0 +1,29 @@
+Extraia ASPECTOS QUALITATIVOS:
+
+MODELO DE NEGÓCIO:
+- business_model: Resumo do modelo (texto, 2-3 linhas)
+- competitive_advantages: Principais vantagens competitivas (texto)
+
+MERCADO:
+- market_overview: Visão geral do mercado e dinâmica competitiva (texto)
+- main_competitors: Lista de competidores (texto)
+- competitor_count: Número aproximado de competidores (APENAS NÚMERO inteiro, ex: 5)
+- market_share_pct: Market share (APENAS NÚMERO decimal, ex: 12.5, sem "%")
+- market_fragmentation: Grau de fragmentação (texto, ex: "fragmentado", "consolidado", "intermediário")
+
+GESTÃO E ESTRATÉGIA:
+- management_team: Avaliação do time de gestão (texto)
+- growth_strategy: Estratégia de crescimento planejada (texto)
+- esg_considerations: Considerações ESG relevantes (texto, se mencionadas)
+
+RISCOS:
+- key_risks: Principais riscos identificados (texto)
+
+PRÓXIMOS PASSOS E COMENTÁRIOS:
+- next_steps: Due diligence e próximas etapas (texto)
+- qualitative_commentary: Outros comentários qualitativos relevantes (texto)
+
+FORMATO CRÍTICO:
+- Competitor count: APENAS número inteiro (ex: 5, não "5 principais")
+- Market share: APENAS número decimal (ex: 12.5, não "12.5%")
+- Use null para campos não encontrados

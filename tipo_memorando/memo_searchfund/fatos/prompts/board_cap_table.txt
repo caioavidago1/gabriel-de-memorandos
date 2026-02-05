@@ -1,0 +1,13 @@
+Extraia BOARD E CAP TABLE (composição do board e investidores):
+
+CAMPOS DO SCHEMA (extrair com estes nomes exatos):
+
+- board_members: Lista de membros do board. Cada item: {name: str, role: str, background: str, indication_source: str}
+- cap_table: Lista de investidores no cap table. Cada item: {investor_name: str, investor_type: str, contribution_mm: float, contribution_pct: float, country: str}
+- governance_structure: Estrutura de governança e direitos (texto: veto, tag-along, drag-along, etc.)
+- board_commentary: Comentários sobre a qualidade do board e cap table (texto)
+
+INSTRUÇÕES:
+1. Busque em seções: board, cap table, governance, investidores, shareholders
+2. contribution_mm e contribution_pct: APENAS números decimais
+3. Use null para campos não encontrados

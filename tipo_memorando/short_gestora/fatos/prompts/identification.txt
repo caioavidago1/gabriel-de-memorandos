@@ -1,0 +1,38 @@
+Extraia informações de IDENTIFICAÇÃO.
+
+IMPORTANTE: Leia TODO o contexto fornecido. Os dados estão na CAPA (primeira página) e no INÍCIO do documento (Sumário Executivo, primeiro parágrafo, seção TRANSAÇÃO).
+
+COMO PREENCHER EM DOCUMENTOS TIPO MEMO/CIM (ex.: Bridge One + Hero Seguros):
+- Na CAPA costumam aparecer DOIS nomes: o primeiro (ou quem "apresenta" / "pagará" no texto) é a GESTORA; o segundo é a EMPRESA ALVO.
+  * Ex.: "BRIDGE ONE" e "HERO SEGUROS" na capa → gestora_name = "Bridge One", company_name = "Hero Seguros"
+  * Se no texto aparecer "A [Nome] pagará" ou "apresentado por [Nome]", use esse [Nome] como gestora_name
+- Data no cabeçalho da capa (ex.: "Novembro 2025", "4T2025") → data_oportunidade
+- Cidade/país na capa (ex.: "SÃO PAULO - BRASIL") → company_location
+- Primeiro parágrafo após o título da empresa (ex.: "A Hero Seguros é a segunda maior MGA...") → business_description (use 1-3 frases)
+- Setor: inferir do negócio (ex.: "seguros viagem", "seguros", "MGA")
+- Campos sem label (AUM, Fundação, Veículo): extrair só se aparecerem em qualquer parte do texto; senão use null
+
+CAMPOS PARA CO-INVESTIMENTO (GESTORA):
+- gestora_name: Nome da gestora. CAPA: primeiro nome ou nome do apresentador. Texto: "A [X] pagará", "apresentado por [X]", "gestora líder"
+- gestora_fundacao: Só se aparecer no documento (ano ou data)
+- aum_total: Só se aparecer (ex.: "AUM USD 500M", "capital sob gestão")
+- aum_fundo_especifico: Só se aparecer
+- veiculo_coinvestimento: FIP, SPE ou Outro — só se mencionado
+- data_oportunidade: Data da oportunidade. CAPA: "Novembro 2025", "4T2025", "Dezembro 2024"
+- setor: Setor da empresa (ex.: seguros viagem, seguros, MGA, tecnologia)
+
+CAMPOS EMPRESA E NEGÓCIO:
+- company_name: Nome da empresa alvo. CAPA: segundo nome ou nome em destaque; texto: "A [X] é...", "[X] at a glance", nome repetido
+- business_description: Descrição em 1-3 frases. Primeiro parágrafo após título/sumário (ex.: "A Hero Seguros é a segunda maior MGA de seguros viagem do Brasil...")
+- company_location: Localização. CAPA: "SÃO PAULO - BRASIL", "São Paulo, SP", cidade e país
+- deal_context: Só se houver (origem da oportunidade, relacionamento)
+
+CAMPOS SEARCH FUND (só se for documento de search fund):
+- fip_casca, searcher_name, search_start_date, investor_nationality: extrair apenas se o documento for de search fund
+
+FORMATO:
+- Use null APENAS para campos que realmente não aparecem no documento
+- Se a capa ou o início do texto tiver nome de gestora, empresa, data, cidade ou descrição do negócio, PREENCHA esses campos
+- Valores EXATOS do documento (não invente)
+- Datas: manter formato do doc ("Novembro 2025", "4T2025")
+- Nomes: manter como no doc ("Bridge One", "Hero Seguros")

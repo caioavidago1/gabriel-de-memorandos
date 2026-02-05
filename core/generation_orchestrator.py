@@ -10,8 +10,8 @@ Arquitetura:
 
 from typing import TypedDict, Annotated, Literal, List, Dict, Any, Optional
 from langgraph.graph import StateGraph, END
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
+from model_config import get_llm_for_agents
 import asyncio
 import json
 from datetime import datetime
@@ -57,7 +57,7 @@ class MemoGenerationOrchestrator:
         temperature: float = 0.3,
         max_retries: int = 2
     ):
-        self.llm = ChatOpenAI(model=model, temperature=temperature)
+        self.llm = get_llm_for_agents(model, temperature)
         self.max_retries = max_retries
         self.graph = self._build_graph()
     

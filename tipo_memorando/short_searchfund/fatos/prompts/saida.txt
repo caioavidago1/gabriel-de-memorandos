@@ -1,0 +1,35 @@
+Extraia PROJEÇÕES E SAÍDA para Cenário Base e Cenário Alternativo.
+
+CENÁRIO BASE (campos cenario_base_*):
+Premissas:
+- cenario_base_ano_saida: Ano da saída (inteiro, ex: 2030)
+- cenario_base_cagr_receita_pct: CAGR Receita (%) - número decimal, sem "%"
+- cenario_base_margem_ebitda_pct: Margem EBITDA (%) - número decimal
+- cenario_base_multiplo_saida_x: Múltiplo de saída (x EV/EBITDA) - número decimal, sem "x"
+- cenario_base_multiplo_saida_ano: Ano do múltiplo (inteiro)
+- cenario_base_dividend_yield_pct: Dividend Yield (%) - número decimal
+Retornos:
+- cenario_base_tir_pct: TIR (%) - número decimal
+- cenario_base_moic: MOIC (x) - número decimal
+
+CENÁRIO ALTERNATIVO (campos cenario_alternativo_*):
+Premissas:
+- cenario_alternativo_ano_saida: Ano da saída (inteiro)
+- cenario_alternativo_cagr_receita_pct: CAGR Receita (%)
+- cenario_alternativo_margem_ebitda_pct: Margem EBITDA (%)
+- cenario_alternativo_multiplo_saida_x: Múltiplo de saída (x)
+- cenario_alternativo_multiplo_saida_ano: Ano do múltiplo
+- cenario_alternativo_dividend_yield_pct: Dividend Yield (%)
+Retornos:
+- cenario_alternativo_tir_pct: TIR (%)
+- cenario_alternativo_moic: MOIC (x)
+
+OBSERVAÇÕES:
+- saida_observacoes: Comentários adicionais sobre premissas e retornos (texto)
+
+FORMATO CRÍTICO:
+- Valores monetários e percentuais: APENAS números decimais (ex: 15.5, não "15.5%")
+- Múltiplos: APENAS números decimais (ex: 7.0, não "7.0x")
+- Anos: APENAS números inteiros (ex: 2030)
+- Use null para campos não encontrados
+- Busque em seções de "Projeções", "Exit Strategy", "Retornos", "Cenário Base", "Cenário Alternativo", tabelas de IRR/MOIC

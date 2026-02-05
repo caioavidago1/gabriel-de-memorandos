@@ -4,7 +4,7 @@ Chat UI Components - Componentes de interface para o chat com IA
 import streamlit as st
 from typing import Dict, Optional, List
 from .chat_handler import ChatHandler
-from .model_config import AVAILABLE_MODELS, get_model_display_name, get_default_model
+from model_config import AVAILABLE_MODELS, get_model_display_name, get_default_model
 from core.ui_messages import show_warning, show_error, show_success
 
 
@@ -219,12 +219,12 @@ def render_fixed_chat_panel(
                 st.caption("*Vazio*")
             else:
                 st.text_area(
-                    "",
+                    "Parágrafo original (somente leitura)",
                     value=original_paragraph,
                     height=150,
                     key=f"original_display_{field_name}_{paragraph_idx}",
                     disabled=True,
-                    label_visibility="collapsed"
+                    label_visibility="collapsed",
                 )
         
         # Contexto da seção 

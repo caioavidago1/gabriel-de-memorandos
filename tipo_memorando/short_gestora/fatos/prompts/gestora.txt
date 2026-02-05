@@ -1,0 +1,18 @@
+Extraia informações da seção GESTORA (co-investimento com gestora).
+
+ONDE PROCURAR: O contexto inclui o INÍCIO do documento (capa/apresentação) e trechos relevantes. Esses dados costumam aparecer em: capa, "Sobre a Gestora", "Track Record", "Equipe", "Performance", "Exits", tabelas de fundos, slides de apresentação.
+Procure por: nome da gestora, fundos anteriores, TVPI, DPI, IRR, MOIC, exits, equipe, sócios, estratégia de investimento, tese, performance histórica, relacionamento com a Spectra.
+
+CAMPOS (extrair quando encontrados):
+- track_record: Track record dos fundos. Formato: Fundo [Nome]: [Ano], AUM [Valor], TVPI [X]x, DPI [X]x, IRR [%]. Um por linha se houver vários fundos. Procure por: "Fundo X", "vintage", "TVPI", "DPI", "IRR", tabelas de performance.
+- principais_exits: Principais exits da gestora: listar empresas e múltiplos de saída. Procure por: "exits", "realizações", "vendas", nomes de empresas vendidas e múltiplos (ex: "Empresa Y - 3.2x").
+- equipe: Equipe/sócios. Formato: [Nome]: [Cargo] - [Anos de experiência] - [Background relevante]. Um por linha. Procure por: "equipe", "sócios", "partners", "GP", currículos, seção sobre gestores.
+- estrategia_investimento: Estratégia de investimento da gestora (estágio, setores, ticket médio, tipo de ativo). Procure por: "estratégia", "foco", "setores", "ticket", "growth", "buyout".
+- tese_gestora: Tese da gestora para este tipo de ativo ou para esta oportunidade.
+- performance_historica: Resumo de performance histórica (fundos anteriores, IRR, MOIC, comparação entre vintages). Procure por: "performance", "IRR", "MOIC", "retornos", "histórico".
+- relacionamento_anterior_spectra: Histórico de relacionamento e operações anteriores com a Spectra. Procure por: "Spectra", "co-investimentos anteriores", "relacionamento", "LP".
+
+FORMATO:
+- Use null para campos não encontrados.
+- Mantenha valores exatos do documento (números, %, múltiplos).
+- Para listas (exits, equipe): preserve uma entrada por linha ou separada por ponto e vírgula.

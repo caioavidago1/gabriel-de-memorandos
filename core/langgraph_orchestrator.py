@@ -17,7 +17,6 @@ class ExtractionState(TypedDict, total=False):
     
     Seções dinâmicas (adicionadas em runtime baseadas no tipo de memo):
     - Para Short Memo - Primário: gestora, fundo, estrategia, spectra_context, opinioes
-    - Para Short Memo - Secundário: identification, transaction_structure, financials_history, returns, qualitative, opinioes, portfolio_secundario
     - Para outros: identification, transaction_structure, financials_history, saida, returns, qualitative, opinioes
     """
     # Campos obrigatórios
@@ -44,9 +43,6 @@ class ExtractionState(TypedDict, total=False):
     fundo: dict
     estrategia: dict
     spectra_context: dict
-    
-    # Seção específica para Short Memo - Secundário
-    portfolio_secundario: dict
     
     # Seção comum a todos
     opinioes: dict
@@ -111,10 +107,10 @@ class LangGraphExtractor:
         Seções são dinâmicas baseadas no tipo de memo.
         """
         from core.extraction_agents import ExtractionAgent
-        from facts_config import get_sections_for_memo_type
-        
-        # Determinar seções a extrair baseado no tipo de memo
-        sections = get_sections_for_memo_type(state["memo_type"])
+        from tipo_memorando.registry import get_fatos_config
+
+        config = get_fatos_config(state["memo_type"])
+        sections = config.get_sections_for_memo_type(state["memo_type"])
         
         logger.info(f"🤖 [LangGraph] Extraindo {len(sections)} seções para '{state['memo_type']}'...")
         logger.info(f"📋 Seções: {', '.join(sections)}")
@@ -165,14 +161,15 @@ class LangGraphExtractor:
         Valida se os dados extraídos fazem sentido.
         Validação é condicional baseada no tipo de memo.
         """
-        from facts_config import get_sections_for_memo_type
-        
+        from tipo_memorando.registry import get_fatos_config
+
+        config = get_fatos_config(state["memo_type"])
         logger.info("🔍 [LangGraph] Validando resultados...")
-        
+
         errors = []
         critical_errors = []
-        
-        relevant_sections = get_sections_for_memo_type(state["memo_type"])
+
+        relevant_sections = config.get_sections_for_memo_type(state["memo_type"])
         
         # === VALIDAR TRANSAÇÃO (apenas se relevante) ===
         trans = state.get("transaction_structure", {}) if "transaction_structure" in relevant_sections else {}
@@ -305,9 +302,10 @@ class LangGraphExtractor:
         """
         Decide o próximo passo baseado no estado
         """
-        from facts_config import get_sections_for_memo_type
-        
-        relevant_sections = get_sections_for_memo_type(state["memo_type"])
+        from tipo_memorando.registry import get_fatos_config
+
+        config = get_fatos_config(state["memo_type"])
+        relevant_sections = config.get_sections_for_memo_type(state["memo_type"])
         total_attempts = sum(state["extraction_attempts"].values())
         max_total_attempts = state["max_retries"] * len(relevant_sections)
         
@@ -337,10 +335,10 @@ class LangGraphExtractor:
         Respeita as seções relevantes para o tipo de memo.
         """
         from core.extraction_agents import ExtractionAgent
-        from facts_config import get_sections_for_memo_type
-        
-        # Filtrar apenas seções falhadas que são relevantes para o tipo de memo
-        relevant_sections = get_sections_for_memo_type(state["memo_type"])
+        from tipo_memorando.registry import get_fatos_config
+
+        config = get_fatos_config(state["memo_type"])
+        relevant_sections = config.get_sections_for_memo_type(state["memo_type"])
         failed_sections = [s for s in state["failed_sections"] if s in relevant_sections]
         
         logger.info(f"🔁 [LangGraph] Retry de seções falhadas: {failed_sections}")
@@ -409,11 +407,12 @@ class LangGraphExtractor:
         Returns:
             Dict com dados extraídos de todas as seções
         """
-        from facts_config import get_field_count_for_memo_type, FIELD_VISIBILITY
-        
-        # Calcular estatísticas de otimização
-        field_stats = get_field_count_for_memo_type(memo_type)
-        total_possible = sum(len(fields) for fields in FIELD_VISIBILITY.values())
+        from tipo_memorando.registry import get_fatos_config
+
+        config = get_fatos_config(memo_type)
+        field_stats = config.get_field_count_for_memo_type(memo_type)
+        field_visibility = getattr(config, "FIELD_VISIBILITY", {})
+        total_possible = sum(len(fields) for fields in field_visibility.values())
         economy = total_possible - field_stats['total']
         economy_pct = (economy / total_possible * 100) if total_possible > 0 else 0
         
@@ -427,11 +426,8 @@ class LangGraphExtractor:
         for section, count in field_stats['by_section'].items():
             logger.info(f"   • {section}: {count} campos")
         logger.info("="*70)
-        
-        from facts_config import get_sections_for_memo_type
-        
-        # Determinar seções relevantes para este tipo de memo
-        relevant_sections = get_sections_for_memo_type(memo_type)
+
+        relevant_sections = config.get_sections_for_memo_type(memo_type)
         
         # Estado inicial dinâmico - apenas seções relevantes
         initial_state: ExtractionState = {

@@ -1,0 +1,17 @@
+Extraia TABELAS DE PROJEÇÕES FINANCEIRAS (cenário base, upside, downside):
+
+CAMPOS DO SCHEMA (extrair com estes nomes exatos):
+
+- projections_years: Lista de anos projetados (ex: [2023, 2024, 2025, 2026, 2027, 2028])
+- projections_base_case: Lista de dados ano a ano para cenário base. Cada item: {year: int, revenue_mm: float, ebitda_mm: float, ebitda_margin_pct: float}
+- projections_upside_case: Lista para cenário otimista (mesmo formato)
+- projections_downside_case: Lista para cenário pessimista (mesmo formato)
+- projections_assumptions_base: Premissas detalhadas do cenário base (texto: crescimento, margens, drivers)
+- projections_assumptions_upside: Premissas do cenário otimista (texto)
+- projections_assumptions_downside: Premissas do cenário pessimista (texto)
+
+INSTRUÇÕES:
+1. Use tabelas de projeções do documento quando disponíveis (o sistema pode ter passado contexto de tabelas extraídas)
+2. Valores monetários: APENAS números decimais (ex: 45.2, não "45.2M")
+3. Percentuais: APENAS números decimais (ex: 18.5, não "18.5%")
+4. Use null para campos não encontrados

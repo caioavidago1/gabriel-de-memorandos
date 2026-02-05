@@ -111,6 +111,10 @@ def build_user_prompt(
         "",
         "**FACTS EXTRAÍDOS (use APENAS esses dados):**"
     ]
+    # Se houver tabela DRE (json da Visualização da Tabela), usar como fonte de receita, EBITDA, margens e CARG
+    if section_title == "3. Histórico Financeiro" and "dre_table" in cleaned_facts:
+        prompt_parts.append("(Use dre_table.table_resolved, dre_table.anos, dre_table.carg_historico e dre_table.carg_projetado como fonte principal de números por ano.)")
+        prompt_parts.append("")
     
     # Formatar facts de forma legível
     for key, value in cleaned_facts.items():
@@ -171,7 +175,7 @@ async def generate_section_async(
     # Se for Search Fund → usar orchestrator com agentes especializados
     if "Search Fund" in memo_type or "search fund" in memo_type.lower():
         try:
-            from shortmemo.searchfund.orchestrator import FIXED_STRUCTURE
+            from tipo_memorando.short_searchfund.orchestrator import FIXED_STRUCTURE
             
             # Mapear section_title para agente
             section_agent_map = {
@@ -227,7 +231,7 @@ async def generate_section_async(
     # Se for Gestora → usar orchestrator com agentes especializados
     elif "Gestora" in memo_type or "gestora" in memo_type.lower():
         try:
-            from shortmemo.gestora.orchestrator import FIXED_STRUCTURE
+            from tipo_memorando.short_gestora.orchestrator import FIXED_STRUCTURE
             
             # Mapear section_title para agente
             section_agent_map = {

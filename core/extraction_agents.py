@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional, List
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 import json
-from facts_config import FIELD_VISIBILITY, get_relevant_fields_for_memo_type
+from tipo_memorando.registry import get_fatos_config, get_fatos_module
 from core.logger import get_logger
 from core.extraction_schemas import get_schema_for_section
 
@@ -15,7 +15,11 @@ def clean_extracted_value(field_key: str, value: Any) -> Any | None:
     """Limpa e converte valores extraídos"""
     if not value or value == "null":
         return None
-    
+
+    # Preservar listas e dicts (projections_table, returns_table, board_cap_table)
+    if isinstance(value, (list, dict)):
+        return value
+
     if field_key.endswith("_mm"):
         if isinstance(value, str):
             cleaned = value.replace("M", "").replace("$", "").replace(",", "").strip()
@@ -71,12 +75,31 @@ class ExtractionAgent:
             )
         else:
             relevant_context = text
-        
-        prompt = self._load_prompt(self.section_name)
+
+        # Seções que costumam estar no início do doc: incluir capa/header quando usamos busca por chunks
+        if text and embeddings_data and self.section_name in ("identification", "gestora"):
+            head = text[:10000].strip()
+            if head:
+                relevant_context = head + "\n\n---\n\n" + (relevant_context or "")
+                logger.info(f"📄 {self.section_name}: início do documento (capa/header) incluído no contexto")
+
+        # Módulo de extração do tipo (lógica completa: system message e prompt)
+        fatos_module = get_fatos_module(memo_type)
+        extraction = getattr(fatos_module, "extraction", None)
+        self._extraction_module = extraction
+        if extraction is None or not hasattr(extraction, "get_system_message") or not hasattr(extraction, "get_prompt"):
+            logger.error(
+                f"Módulo extraction do tipo não encontrado ou incompleto para '{memo_type}'. "
+                f"Necessário: get_system_message(section, memo_type) e get_prompt(section, memo_type)."
+            )
+            return {}
+
+        config = get_fatos_config(memo_type)
         relevant_fields = self._get_relevant_fields(memo_type)
+        prompt = extraction.get_prompt(self.section_name, memo_type)
         
         # Log economia de tokens
-        total_fields_section = len(FIELD_VISIBILITY.get(self.section_name, {}))
+        total_fields_section = len(getattr(config, "FIELD_VISIBILITY", {}).get(self.section_name, {}))
         fields_to_extract = len(relevant_fields)
         fields_skipped = total_fields_section - fields_to_extract
         
@@ -95,34 +118,31 @@ class ExtractionAgent:
             )
             return {}
         
-        # Obter schema Pydantic para structured output
-        try:
-            schema_class = get_schema_for_section(self.section_name)
-        except ValueError as e:
-            # ❌ ERRO CRÍTICO: Schema não encontrado
-            logger.critical(
-                f"❌ ERRO CRÍTICO: Schema não encontrado para seção '{self.section_name}'\n"
-                f"   Detalhes: {e}\n"
-                f"   Ação necessária: Adicione o schema em core/extraction_schemas.py"
-            )
-            
-            # Em modo STRICT (produção), falhar imediatamente
-            if os.getenv("EXTRACTION_STRICT_MODE", "false").lower() == "true":
-                logger.critical(f"🛑 EXTRACTION_STRICT_MODE=true: Interrompendo extração")
-                raise ValueError(
-                    f"Extração impossível sem schema para seção: {self.section_name}\n"
-                    f"Configure o schema em extraction_schemas.py ou desabilite EXTRACTION_STRICT_MODE"
+        # Obter schema Pydantic para structured output (tipo pode sobrescrever com get_schema)
+        schema_class = None
+        if hasattr(extraction, "get_schema"):
+            schema_class = extraction.get_schema(self.section_name, memo_type)
+        if schema_class is None:
+            try:
+                schema_class = get_schema_for_section(self.section_name)
+            except ValueError as e:
+                # ❌ ERRO CRÍTICO: Schema não encontrado
+                logger.critical(
+                    f"❌ ERRO CRÍTICO: Schema não encontrado para seção '{self.section_name}'\n"
+                    f"   Detalhes: {e}\n"
+                    f"   Ação necessária: Adicione o schema em core/extraction_schemas.py"
                 )
-            
-            # Em modo compatibilidade (dev), retornar vazio com aviso
-            logger.warning(
-                f"⚠️  Caindo em modo degradado (qualidade reduzida)\n"
-                f"   Dica: Para forçar erro, configure EXTRACTION_STRICT_MODE=true"
-            )
-            return {}  # Retornar dict vazio ao invés de fallback degradado
-        
-        # Detectar se é Search Fund para adicionar instruções específicas
-        is_search_fund = "Search Fund" in memo_type or "Co-investimento" in memo_type
+                if os.getenv("EXTRACTION_STRICT_MODE", "false").lower() == "true":
+                    logger.critical(f"🛑 EXTRACTION_STRICT_MODE=true: Interrompendo extração")
+                    raise ValueError(
+                        f"Extração impossível sem schema para seção: {self.section_name}\n"
+                        f"Configure o schema em extraction_schemas.py ou desabilite EXTRACTION_STRICT_MODE"
+                    )
+                logger.warning(
+                    f"⚠️  Caindo em modo degradado (qualidade reduzida)\n"
+                    f"   Dica: Para forçar erro, configure EXTRACTION_STRICT_MODE=true"
+                )
+                return {}
         
         # Para seções de tabelas, usar TableExtractor para encontrar tabelas
         table_context = ""
@@ -145,127 +165,7 @@ class ExtractionAgent:
             except Exception as e:
                 logger.warning(f"Erro ao extrair tabelas para {self.section_name}: {e}")
         
-        system_message = f"""Você é um especialista em análise de documentos financeiros de Private Equity.
-Sua tarefa é extrair informações estruturadas da seção '{self.section_name}' com MÁXIMA PRECISÃO.
-
-REGRAS CRÍTICAS:
-1. Extraia APENAS informações EXPLICITAMENTE mencionadas no documento
-2. Use null para campos não encontrados - NUNCA invente valores
-3. Mantenha formatação original de números
-4. Para percentuais: use valor decimal (ex: 15.5 para "15,5%")
-5. Para valores monetários: extraia apenas o número (ex: 45.5 para "R$ 45,5M")
-6. Anos: formato YYYY (ex: 2023)
-7. Se houver ambiguidade, prefira null a chutar
-
-ATENÇÃO ESPECIAL PARA NOMES DE EMPRESAS (seção identification):
-- O nome da empresa pode NÃO ter label explícito como "Nome:" ou "Empresa:"
-- Procure por nomes próprios no título, cabeçalho ou primeiras frases
-- Nomes próprios que aparecem repetidamente são candidatos fortes
-- Exemplos: "Hero Seguros", "Bridge One Capital", "Project Phoenix"
-- Se o documento menciona "a empresa" ou "o target", o nome geralmente está perto"""
-
-        if is_search_fund and self.section_name == "identification":
-            system_message += """
-
-ATENÇÃO CRÍTICA PARA SEARCH FUND (seção identification):
-- searcher_name: É OBRIGATÓRIO extrair se mencionado. Procure por:
-  * "search liderado por [NOME]"
-  * "searcher [NOME]"
-  * "empreendedor [NOME]"
-  * Nomes próprios seguidos de "search" ou "busca"
-  * Pode ser múltiplos nomes (ex: "Fernando Ponce e Eduardo Haro")
-- search_start_date: É OBRIGATÓRIO extrair se mencionado. Procure por:
-  * "iniciou o search em", "busca iniciada em", "período de busca"
-  * Formatos: "1S2023", "Janeiro 2023", "2023", "1º semestre 2023"
-- investor_nationality: É OBRIGATÓRIO extrair se mencionado. Procure por:
-  * "brasileiro", "mexicano", "americano", "nacionalidade", "origem"
-  
-NÃO DEIXE DE EXTRAIR esses campos se estiverem no documento!"""
-
-        # Instruções específicas para seções de tabelas
-        if self.section_name == "projections_table":
-            system_message += """
-
-ATENÇÃO CRÍTICA PARA PROJEÇÕES (seção projections_table):
-- Procure por TABELAS de projeções financeiras no documento
-- Extraia dados ano a ano para cada cenário (base, upside, downside)
-- Cada linha da tabela deve ter: year, revenue_mm, ebitda_mm, ebitda_margin_pct
-- Se houver múltiplas tabelas, identifique qual é qual cenário pelo contexto (título, texto próximo)
-- projections_years: Lista de todos os anos projetados
-- projections_assumptions: Premissas detalhadas mencionadas para cada cenário
-
-FORMATO ESPERADO:
-projections_base_case: [
-  {"year": 2024, "revenue_mm": 100.0, "ebitda_mm": 35.0, "ebitda_margin_pct": 35.0},
-  {"year": 2025, "revenue_mm": 120.0, "ebitda_mm": 45.0, "ebitda_margin_pct": 37.5},
-  ...
-]"""
-
-        if self.section_name == "returns_table":
-            system_message += """
-
-ATENÇÃO CRÍTICA PARA RETORNOS (seção returns_table):
-- Procure por TABELAS de retornos (IRR/MOIC) no documento
-- Extraia retornos para cada cenário (base, upside, downside)
-- Se houver tabela de sensibilidade, extraia múltiplos cenários variando múltiplo de saída ou ano
-- returns_base_case: {irr_pct: float, moic: float, exit_year: int, exit_multiple: float}
-- returns_sensitivity_table: Lista de cenários com diferentes combinações de múltiplo/ano
-
-FORMATO ESPERADO:
-returns_base_case: {"irr_pct": 39.8, "moic": 5.3, "exit_year": 2028, "exit_multiple": 6.0}
-returns_sensitivity_table: [
-  {"exit_year": 2028, "exit_multiple": 5.5, "irr_pct": 36.7, "moic": 4.8},
-  {"exit_year": 2028, "exit_multiple": 6.0, "irr_pct": 39.8, "moic": 5.3},
-  ...
-]"""
-
-        if self.section_name in ["gestor", "searcher"]:
-            system_message += """
-
-ATENÇÃO CRÍTICA PARA GESTOR/SEARCHER (seção gestor):
-- searcher_name: Nome(s) completo(s) do(s) searcher(s) - pode ser múltiplos separados por vírgula
-- searcher_background: Formação acadêmica completa e histórico profissional detalhado
-- searcher_experience: Anos de experiência, empresas anteriores, cargos ocupados
-- searcher_assessment: Resultados de assessment psicológico se mencionado (perfil, características)
-- searcher_complementarity: Como os searchers se complementam (se dupla), divisão de papéis
-- searcher_references: Referências obtidas (ex-empregadores, mentores, validadores)
-- searcher_track_record: Histórico de deals anteriores, experiências em M&A (se aplicável)
-
-PROCURE POR:
-- Seções como "2. Gestor", "Gestor", "Searchers", "Equipe"
-- Texto sobre formação, experiência, assessment
-- Comparações com outros searchers conhecidos
-- Validações e referências"""
-
-        if self.section_name == "board_cap_table":
-            system_message += """
-
-ATENÇÃO CRÍTICA PARA BOARD E CAP TABLE (seção board_cap_table):
-- Procure por seções sobre composição do board e estrutura de investidores
-- board_members: Lista de membros do board com nome, role, background, indication_source
-- cap_table: Lista de investidores com nome, tipo, contribution, percentual, país
-- governance_structure: Direitos de veto, tag-along, drag-along, composição do board
-- board_commentary: Comentários sobre qualidade do board e cap table
-
-FORMATO ESPERADO:
-board_members: [
-  {"name": "João Lima", "role": "Board Member", "background": "...", "indication_source": "Voke"},
-  ...
-]
-cap_table: [
-  {"investor_name": "Spectra", "investor_type": "Search Investor", "contribution_mm": 20.0, "contribution_pct": 22.0, "country": "Brazil"},
-  ...
-]
-
-PROCURE POR:
-- Seções como "Board e Cap Table", "Board", "Composição do Board"
-- Tabelas de investidores
-- Listas de membros do board com backgrounds"""
-
-        system_message += """
-
-IMPORTANTE: Você DEVE retornar um objeto JSON válido seguindo o schema fornecido.
-Campos que você não encontrar devem ser null ou omitidos."""
+        system_message = extraction.get_system_message(self.section_name, memo_type)
 
         user_message = f"""{prompt}
 
@@ -318,31 +218,46 @@ Extraia os dados seguindo RIGOROSAMENTE o schema estruturado."""
         """
         Retorna queries hierárquicas e específicas para cada seção.
         Estrutura: queries primárias (mais específicas) e secundárias (mais amplas).
+        Se o tipo tiver get_section_queries(section), usa esse dict; senão usa o interno.
         """
+        ext = getattr(self, "_extraction_module", None)
+        if ext is not None and hasattr(ext, "get_section_queries"):
+            custom = ext.get_section_queries(section)
+            if custom and isinstance(custom, dict):
+                return custom
         queries_config = {
             "identification": {
                 "primary": [
-                    "nome oficial da empresa target companhia organização",
-                    "localização sede cidade estado país fundação ano",
+                    "empresa alvo target companhia nome codinome Project Baja TSE Disktrans Oca Hero Seguros Bridge One aquisição está avaliando",
+                    "localização empresa alvo cidade região país sede São Paulo Brasil Baja California México",
+                    "descrição negócio especializada em MGA seguros viagem automação industrial software logística",
+                    "gestora nome fundação AUM total fundo específico veículo coinvestimento FIP SPE data oportunidade apresentado por",
+                    "capa título início documento MEMORANDO DE INVESTIMENTO CIM Novembro 2025 confidencial Sumário Executivo"
                 ],
                 "secondary": [
-                    "negócio atividade setor descrição empresa",
-                    "deal contexto oportunidade relacionamento vendedor"
+                    "negócio atividade setor segmento core business operação produtos serviços",
+                    "contexto oportunidade deal origem relacionamento vendedor sucessão fundador",
+                    "gestora apresentação AUM bilhões milhões fundo veículo data setor localização"
                 ],
                 "search_fund": [
-                    "searcher empreendedor nome busca período início",
-                    "nacionalidade investidor searcher origem"
+                    "searcher nome liderado Pedro Dorea Fernando Ponce Eduardo Haro Hunibert Tuch Guilherme Ferrari período de busca",
+                    "FIP casca veículo jurídico Minerva Capital Eunoia Redfoot Entrevo Capital capta recursos investimento empresa alvo",
+                    "nacionalidade search mexicano brasileiro search fund segundo semestre 2S2024 1S2023 início período busca",
+                    "capa título cover deal CIM memo início documento SEARCH FUND nome casca Atlante Atalante"
                 ]
             },
             "transaction_structure": {
                 "primary": [
-                    "valuation enterprise value EV equity value",
-                    "múltiplo EV EBITDA multiple transação",
-                    "estrutura pagamento cash seller note earnout"
+                    "valuation enterprise value EV equity value equity value milhões",
+                    "múltiplo EV EBITDA multiple transação entrada período referência",
+                    "estrutura pagamento cash seller note earnout à vista",
+                    "valor total transação incluindo custos step-up search capital chega a"
                 ],
                 "secondary": [
-                    "stake percentual participação adquirida",
-                    "dívida equity ratio financiamento estrutura"
+                    "stake percentual participação adquirida 100% equity",
+                    "dívida equity ratio financiamento acquisition debt",
+                    "estruturados percentual à vista acquisition debt negociação",
+                    "múltiplo total EBITDA considerando custos 4,9x 3,6x"
                 ]
             },
             "financials_history": {
@@ -447,13 +362,16 @@ Extraia os dados seguindo RIGOROSAMENTE o schema estruturado."""
             },
             "gestora": {
                 "primary": [
-                    "gestora GP general partner nome gestora",
-                    "track record performance histórico exits",
-                    "AUM assets under management capital sob gestão"
+                    "track record fundos TVPI DPI IRR vintage performance histórica",
+                    "gestora GP general partner nome sócios equipe gestão",
+                    "exits realizados principais vendas múltiplos saída empresas",
+                    "AUM assets under management capital sob gestão fundo específico"
                 ],
                 "secondary": [
-                    "equipe gestão sócios principais",
-                    "filosofia investimento estratégia gestora"
+                    "equipe gestão sócios principais anos experiência background",
+                    "estratégia investimento tese gestora filosofia foco setorial",
+                    "performance histórica IRR MOIC fundos anteriores comparação",
+                    "Spectra relacionamento anterior co-investimentos operações"
                 ]
             },
             "fundo": {
@@ -499,7 +417,20 @@ Extraia os dados seguindo RIGOROSAMENTE o schema estruturado."""
                     "conclusão parecer avaliação final",
                     "founders track record posicionamento empresa"
                 ]
-            }
+            },
+            "estrutura_veiculo": {
+                "primary": [
+                    "estrutura veículo coinvestimento regulamento fundo",
+                    "duração fundo anos capital autorizado taxa gestão performance",
+                    "hurdle rate catch-up preferência distribuição waterfall",
+                    "chamadas capital chamada capital timing valores",
+                    "quórum destituição gestor evento equipe chave"
+                ],
+                "secondary": [
+                    "regulamento pontos atenção governança",
+                    "taxa administração taxa performance carry"
+                ]
+            },
         }
         
         return queries_config.get(section, {
@@ -556,8 +487,8 @@ Extraia os dados seguindo RIGOROSAMENTE o schema estruturado."""
         # Ordenar por score e pegar os melhores
         all_results.sort(key=lambda x: x["score"], reverse=True)
         
-        # OTIMIZAÇÃO: Para identification, buscar MAIS chunks (incluir início do doc)
-        top_k = 15 if section == "identification" else 10
+        # OTIMIZAÇÃO: identification e gestora costumam estar no início do doc
+        top_k = 15 if section in ("identification", "gestora") else 10
         final_results = all_results[:top_k]
         
         # Combinar chunks
@@ -598,8 +529,8 @@ Extraia os dados seguindo RIGOROSAMENTE o schema estruturado."""
         # Obter queries hierárquicas
         queries_config = self._get_section_queries_hierarchical(section)
         
-        # OTIMIZAÇÃO: Para identification, buscar MAIS chunks (nomes geralmente no início)
-        top_k = 15 if section == "identification" else 10
+        # OTIMIZAÇÃO: identification e gestora costumam estar no início do doc
+        top_k = 15 if section in ("identification", "gestora") else 10
         
         # DETECTAR MODO: ChromaDB ou NumPy
         if embeddings_data.get("vector_store") == "chromadb":
@@ -784,30 +715,14 @@ Extraia os dados seguindo RIGOROSAMENTE o schema estruturado."""
         
         return context
     
-    def _load_prompt(self, section: str) -> str:
-        """Carrega prompt específico da seção"""
-        prompt_file = f"facts/prompts/{section}.txt"
-        try:
-            with open(prompt_file, 'r', encoding='utf-8') as f:
-                return f.read()
-        except FileNotFoundError:
-            return f"Extraia informações relevantes para a seção {section}."
-    
     def _get_relevant_fields(self, memo_type: str) -> Dict:
         """
         Retorna apenas os campos relevantes para o tipo de memorando.
-        
-        Usa get_relevant_fields_for_memo_type() de facts_config.py para obter
-        a lista filtrada de campos que devem ser extraídos.
-        
-        Args:
-            memo_type: Tipo de memorando selecionado
-        
-        Returns:
-            Dict {field_key: field_label} com apenas campos relevantes
+
+        Usa get_fatos_config(memo_type).get_relevant_fields_for_memo_type().
         """
-        # Obter todos os campos relevantes para o tipo de memo
-        all_relevant = get_relevant_fields_for_memo_type(memo_type)
+        config = get_fatos_config(memo_type)
+        all_relevant = config.get_relevant_fields_for_memo_type(memo_type)
         
         # Filtrar apenas os campos da seção atual
         if self.section_name not in all_relevant:

@@ -26,12 +26,12 @@ class IdentificationFacts(BaseModel):
     
     searcher_name: Optional[str] = Field(
         None,
-        description="Nome do searcher (apenas para Search Fund)"
+        description="Nome do(s) searcher(s). Pode aparecer implicitamente (ex: 'liderado por Daniel', assinaturas, seção Searchers) - não exige label 'Nome do searcher:'"
     )
     
     search_start_date: Optional[str] = Field(
         None,
-        description="Data de início da busca (apenas para Search Fund), formato: 'Mês/Ano' ou 'Ano'"
+        description="Início do período de busca. Procure em 'período de busca no X', 'iniciou em X'. Formatos: 1S2023, 2S2024, Janeiro 2024"
     )
     
     business_description: Optional[str] = Field(
@@ -41,7 +41,12 @@ class IdentificationFacts(BaseModel):
     
     investor_nationality: Optional[str] = Field(
         None,
-        description="Nacionalidade do investidor/searcher"
+        description="Nacionalidade. Inferir de 'search fund brasileiro/mexicano/americano' ou contexto - raramente tem label explícito"
+    )
+    
+    fip_casca: Optional[str] = Field(
+        None,
+        description="FIP (casca): veículo jurídico do Search. Frequentemente na CAPA/TÍTULO (ex: 'ATLANTE CAPITAL SEARCH FUND', 'Eunoia', 'Minerva Capital')"
     )
     
     company_location: Optional[str] = Field(
@@ -60,6 +65,14 @@ class IdentificationFacts(BaseModel):
         None,
         description="Contexto do deal: origem, processo competitivo, relacionamento com vendedor"
     )
+    # Campos para Short Memo Co-investimento (Gestora)
+    gestora_name: Optional[str] = Field(None, description="Nome da gestora")
+    gestora_fundacao: Optional[str] = Field(None, description="Fundação da gestora (ano ou data)")
+    aum_total: Optional[str] = Field(None, description="AUM total da gestora")
+    aum_fundo_especifico: Optional[str] = Field(None, description="AUM do fundo específico")
+    veiculo_coinvestimento: Optional[str] = Field(None, description="Veículo de coinvestimento: FIP/SPE/Outro")
+    data_oportunidade: Optional[str] = Field(None, description="Data da oportunidade")
+    setor: Optional[str] = Field(None, description="Setor da empresa alvo")
 
 
 class TransactionStructureFacts(BaseModel):
@@ -142,31 +155,121 @@ class TransactionStructureFacts(BaseModel):
         description="Múltiplo considerando earnout pago"
     )
     
-    debt_equity_ratio: Optional[float] = Field(
+    total_transaction_value_mm: Optional[float] = Field(
         None,
         ge=0.0,
-        description="Razão Dívida/Equity"
+        description="Valor total da transação incluindo step-up, custos de transação (milhões)"
     )
     
-    # Campos específicos para Short Memo - Secundário
-    multiple_ev_fcf: Optional[float] = Field(
+    multiple_total: Optional[float] = Field(
         None,
         ge=0.0,
         le=100.0,
-        description="Múltiplo EV/FCF de entrada (específico para secundário)"
+        description="Múltiplo total (x EBITDA) quando aplicável"
     )
     
-    target_leverage: Optional[float] = Field(
+    cash_pct_total: Optional[float] = Field(
         None,
         ge=0.0,
-        description="Alavancagem alvo (Dívida/EBITDA) - específico para secundário"
+        le=100.0,
+        description="Percentual do total correspondente ao pagamento à vista (%)"
+    )
+    
+    equity_cash_mm: Optional[float] = Field(
+        None,
+        ge=0.0,
+        description="Equity à vista em milhões (quando detalhado separadamente)"
+    )
+    
+    seller_note_pct_total: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=100.0,
+        description="Percentual do total correspondente ao seller note (%)"
+    )
+    
+    seller_note_tenor_years: Optional[float] = Field(
+        None,
+        ge=0.0,
+        description="Prazo do seller note em anos"
+    )
+    
+    seller_note_index: Optional[str] = Field(
+        None,
+        description="Indexador do seller note (CDI, IPCA, etc.)"
+    )
+    
+    seller_note_frequency: Optional[str] = Field(
+        None,
+        description="Periodicidade de pagamento do seller note (mensal, trimestral, etc.)"
+    )
+    
+    seller_note_grace: Optional[str] = Field(
+        None,
+        description="Carência do seller note se aplicável"
+    )
+    
+    earnout_timeline: Optional[str] = Field(
+        None,
+        description="Timeline/período ou ano de pagamento do earn-out"
+    )
+    
+    step_up_mm: Optional[float] = Field(
+        None,
+        ge=0.0,
+        description="Step-up em milhões"
     )
     
     acquisition_debt_mm: Optional[float] = Field(
         None,
         ge=0.0,
-        description="Dívida de aquisição (milhões) - específico para secundário"
+        description="Dívida de aquisição (milhões)"
     )
+    
+    acquisition_debt_rate: Optional[str] = Field(
+        None,
+        description="Taxa do acquisition debt (% em moeda ou índice + spread)"
+    )
+    
+    acquisition_debt_tenor_years: Optional[float] = Field(
+        None,
+        ge=0.0,
+        description="Prazo do acquisition debt em anos"
+    )
+    
+    acquisition_debt_institution: Optional[str] = Field(
+        None,
+        description="Instituição do acquisition debt (banco/fundo) se conhecido"
+    )
+    
+    leverage_resulting_x: Optional[float] = Field(
+        None,
+        ge=0.0,
+        description="Alavancagem resultante (x Net Debt/EBITDA) no período"
+    )
+    
+    debt_equity_ratio: Optional[float] = Field(
+        None,
+        ge=0.0,
+        description="Razão Dívida/Equity"
+    )
+    # Campos para Short Memo Co-investimento (Gestora)
+    valuation_total_empresa: Optional[str] = Field(None, description="Valuation total da empresa [Moeda] [Valor]")
+    participacao_total_adquirida: Optional[float] = Field(None, ge=0, le=100, description="Participação total adquirida (%)")
+    participacao_fundo_gestora: Optional[float] = Field(None, ge=0, le=100, description="Participação do fundo da gestora (%)")
+    participacao_coinvestimento: Optional[float] = Field(None, ge=0, le=100, description="Participação do coinvestimento (%)")
+    compensacao_dividendos: Optional[str] = Field(None, description="Compensação via dividendos se aplicável")
+    valor_total_coinvestimento: Optional[str] = Field(None, description="Valor total disponível para coinvestimento")
+    alocacao_fundo: Optional[str] = Field(None, description="Alocação pretendida pelo fundo")
+    disponivel_coinvestidores: Optional[str] = Field(None, description="Disponível para coinvestidores")
+    cheque_spectra: Optional[str] = Field(None, description="Cheque proposto Spectra")
+    cheque_spectra_pct: Optional[float] = Field(None, ge=0, le=100, description="Cheque Spectra (% do coinvestimento)")
+    assentos_conselho: Optional[str] = Field(None, description="Assentos no conselho")
+    vesting_lockup: Optional[str] = Field(None, description="Vesting/Lock-up")
+    materias_protegidas: Optional[str] = Field(None, description="Matérias protegidas")
+    tag_along: Optional[str] = Field(None, description="Tag along (%)")
+    drag_along: Optional[str] = Field(None, description="Drag along - condições")
+    opcoes_liquidez: Optional[str] = Field(None, description="Opções de liquidez")
 
 
 class FinancialsHistoryFacts(BaseModel):
@@ -268,26 +371,6 @@ class FinancialsHistoryFacts(BaseModel):
         None,
         description="Comentários sobre a performance financeira histórica"
     )
-    
-    # Campos específicos para Short Memo - Secundário
-    fcf_current_mm: Optional[float] = Field(
-        None,
-        description="Free Cash Flow atual (milhões) - específico para secundário"
-    )
-    
-    fcf_conversion_pct: Optional[float] = Field(
-        None,
-        ge=0.0,
-        le=200.0,
-        description="Conversão de FCF (% do EBITDA) - específico para secundário"
-    )
-    
-    roic_pct: Optional[float] = Field(
-        None,
-        ge=-100.0,
-        le=1000.0,
-        description="ROIC (Return on Invested Capital) (%) - específico para secundário"
-    )
 
 
 class SaidaFacts(BaseModel):
@@ -375,6 +458,98 @@ class SaidaFacts(BaseModel):
         None,
         description="Comentários sobre a tese de saída e timing"
     )
+    # Campos Short Memo / Gestora: cenários base, alternativo, conservador e taxas
+    cenario_base_ano_saida: Optional[int] = Field(None, ge=2020, le=2050)
+    cenario_base_cagr_receita_pct: Optional[float] = Field(None, ge=-50.0, le=500.0)
+    cenario_base_margem_ebitda_pct: Optional[float] = Field(None, ge=0.0, le=100.0)
+    cenario_base_multiplo_saida_x: Optional[float] = Field(None, ge=0.0, le=100.0)
+    cenario_base_multiplo_saida_ano: Optional[int] = Field(None, ge=2020, le=2050)
+    cenario_base_dividend_yield_pct: Optional[float] = Field(None, ge=0.0, le=100.0)
+    cenario_base_tir_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0)
+    cenario_base_moic: Optional[float] = Field(None, ge=0.0, le=50.0)
+    cenario_base_tir_bruta_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0)
+    cenario_base_moic_bruto: Optional[float] = Field(None, ge=0.0, le=50.0)
+    cenario_base_tir_liquida_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0)
+    cenario_base_moic_liquido: Optional[float] = Field(None, ge=0.0, le=50.0)
+    cenario_base_dividendos_periodo: Optional[str] = Field(None)
+    cenario_alternativo_ano_saida: Optional[int] = Field(None, ge=2020, le=2050)
+    cenario_alternativo_cagr_receita_pct: Optional[float] = Field(None, ge=-50.0, le=500.0)
+    cenario_alternativo_margem_ebitda_pct: Optional[float] = Field(None, ge=0.0, le=100.0)
+    cenario_alternativo_multiplo_saida_x: Optional[float] = Field(None, ge=0.0, le=100.0)
+    cenario_alternativo_multiplo_saida_ano: Optional[int] = Field(None, ge=2020, le=2050)
+    cenario_alternativo_dividend_yield_pct: Optional[float] = Field(None, ge=0.0, le=100.0)
+    cenario_alternativo_tir_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0)
+    cenario_alternativo_moic: Optional[float] = Field(None, ge=0.0, le=50.0)
+    cenario_alternativo_tir_bruta_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0)
+    cenario_alternativo_moic_bruto: Optional[float] = Field(None, ge=0.0, le=50.0)
+    cenario_alternativo_tir_liquida_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0)
+    cenario_alternativo_moic_liquido: Optional[float] = Field(None, ge=0.0, le=50.0)
+    cenario_alternativo_dividendos_periodo: Optional[str] = Field(None)
+    cenario_conservador_ano_saida: Optional[int] = Field(None, ge=2020, le=2050)
+    cenario_conservador_cagr_receita_pct: Optional[float] = Field(None, ge=-50.0, le=500.0)
+    cenario_conservador_margem_ebitda_pct: Optional[float] = Field(None, ge=0.0, le=100.0)
+    cenario_conservador_multiplo_saida_x: Optional[float] = Field(None, ge=0.0, le=100.0)
+    cenario_conservador_multiplo_saida_ano: Optional[int] = Field(None, ge=2020, le=2050)
+    cenario_conservador_dividendos_periodo: Optional[str] = Field(None)
+    cenario_conservador_tir_bruta_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0)
+    cenario_conservador_moic_bruto: Optional[float] = Field(None, ge=0.0, le=50.0)
+    cenario_conservador_tir_liquida_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0)
+    cenario_conservador_moic_liquido: Optional[float] = Field(None, ge=0.0, le=50.0)
+    taxa_gestao_pct: Optional[float] = Field(None, ge=0, le=100)
+    taxa_performance_pct: Optional[float] = Field(None, ge=0, le=100)
+    saida_observacoes: Optional[str] = Field(None)
+
+
+class SaidaShortMemoFacts(BaseModel):
+    """Schema para seção Saída (Short Memo) - Cenário Base e Cenário Alternativo alinhado à UI."""
+    model_config = ConfigDict(strict=True)
+
+    # Cenário base - premissas
+    cenario_base_ano_saida: Optional[int] = Field(None, ge=2020, le=2050, description="Ano da saída (cenário base)")
+    cenario_base_cagr_receita_pct: Optional[float] = Field(None, ge=-50.0, le=500.0, description="CAGR Receita (%) cenário base")
+    cenario_base_margem_ebitda_pct: Optional[float] = Field(None, ge=0.0, le=100.0, description="Margem EBITDA (%) cenário base")
+    cenario_base_multiplo_saida_x: Optional[float] = Field(None, ge=0.0, le=100.0, description="Múltiplo de saída (x EV/EBITDA) cenário base")
+    cenario_base_multiplo_saida_ano: Optional[int] = Field(None, ge=2020, le=2050, description="Ano do múltiplo de saída cenário base")
+    cenario_base_dividend_yield_pct: Optional[float] = Field(None, ge=0.0, le=100.0, description="Dividend Yield (%) cenário base")
+    # Cenário base - retornos
+    cenario_base_tir_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0, description="TIR (%) cenário base")
+    cenario_base_moic: Optional[float] = Field(None, ge=0.0, le=50.0, description="MOIC (x) cenário base")
+
+    # Cenário alternativo - premissas
+    cenario_alternativo_ano_saida: Optional[int] = Field(None, ge=2020, le=2050, description="Ano da saída (cenário alternativo)")
+    cenario_alternativo_cagr_receita_pct: Optional[float] = Field(None, ge=-50.0, le=500.0, description="CAGR Receita (%) cenário alternativo")
+    cenario_alternativo_margem_ebitda_pct: Optional[float] = Field(None, ge=0.0, le=100.0, description="Margem EBITDA (%) cenário alternativo")
+    cenario_alternativo_multiplo_saida_x: Optional[float] = Field(None, ge=0.0, le=100.0, description="Múltiplo de saída (x) cenário alternativo")
+    cenario_alternativo_multiplo_saida_ano: Optional[int] = Field(None, ge=2020, le=2050, description="Ano do múltiplo cenário alternativo")
+    cenario_alternativo_dividend_yield_pct: Optional[float] = Field(None, ge=0.0, le=100.0, description="Dividend Yield (%) cenário alternativo")
+    # Cenário alternativo - retornos
+    cenario_alternativo_tir_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0, description="TIR (%) cenário alternativo")
+    cenario_alternativo_moic: Optional[float] = Field(None, ge=0.0, le=50.0, description="MOIC (x) cenário alternativo")
+    # Gestora: retornos bruto/líquido e dividendos
+    cenario_base_tir_bruta_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0, description="TIR bruta (%) gestora - cenário base")
+    cenario_base_moic_bruto: Optional[float] = Field(None, ge=0.0, le=50.0, description="MOIC bruto (x) gestora - cenário base")
+    cenario_base_tir_liquida_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0, description="TIR líquida (%) coinvestidor - cenário base")
+    cenario_base_moic_liquido: Optional[float] = Field(None, ge=0.0, le=50.0, description="MOIC líquido (x) coinvestidor - cenário base")
+    cenario_base_dividendos_periodo: Optional[str] = Field(None, description="Dividendos ao longo do período - cenário base")
+    cenario_alternativo_tir_bruta_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0, description="TIR bruta (%) gestora - cenário alternativo")
+    cenario_alternativo_moic_bruto: Optional[float] = Field(None, ge=0.0, le=50.0, description="MOIC bruto (x) gestora - cenário alternativo")
+    cenario_alternativo_tir_liquida_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0, description="TIR líquida (%) coinvestidor - cenário alternativo")
+    cenario_alternativo_moic_liquido: Optional[float] = Field(None, ge=0.0, le=50.0, description="MOIC líquido (x) coinvestidor - cenário alternativo")
+    cenario_alternativo_dividendos_periodo: Optional[str] = Field(None, description="Dividendos ao longo do período - cenário alternativo")
+    cenario_conservador_ano_saida: Optional[int] = Field(None, ge=2020, le=2050, description="Ano da saída cenário conservador")
+    cenario_conservador_cagr_receita_pct: Optional[float] = Field(None, ge=-50.0, le=500.0, description="CAGR Receita (%) cenário conservador")
+    cenario_conservador_margem_ebitda_pct: Optional[float] = Field(None, ge=0.0, le=100.0, description="Margem EBITDA (%) cenário conservador")
+    cenario_conservador_multiplo_saida_x: Optional[float] = Field(None, ge=0.0, le=100.0, description="Múltiplo de saída (x) cenário conservador")
+    cenario_conservador_multiplo_saida_ano: Optional[int] = Field(None, ge=2020, le=2050, description="Ano do múltiplo cenário conservador")
+    cenario_conservador_dividendos_periodo: Optional[str] = Field(None, description="Dividendos ao longo do período - cenário conservador")
+    cenario_conservador_tir_bruta_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0, description="TIR bruta (%) gestora - cenário conservador")
+    cenario_conservador_moic_bruto: Optional[float] = Field(None, ge=0.0, le=50.0, description="MOIC bruto (x) gestora - cenário conservador")
+    cenario_conservador_tir_liquida_pct: Optional[float] = Field(None, ge=-100.0, le=1000.0, description="TIR líquida (%) coinvestidor - cenário conservador")
+    cenario_conservador_moic_liquido: Optional[float] = Field(None, ge=0.0, le=50.0, description="MOIC líquido (x) coinvestidor - cenário conservador")
+    taxa_gestao_pct: Optional[float] = Field(None, ge=0, le=100, description="Taxa de gestão (%)")
+    taxa_performance_pct: Optional[float] = Field(None, ge=0, le=100, description="Taxa de performance (%)")
+
+    saida_observacoes: Optional[str] = Field(None, description="Observações sobre premissas e retornos")
 
 
 class ReturnsFacts(BaseModel):
@@ -405,19 +580,6 @@ class ReturnsFacts(BaseModel):
     returns_commentary: Optional[str] = Field(
         None,
         description="Comentários sobre os retornos esperados e sensibilidades"
-    )
-    
-    # Campos específicos para Short Memo - Secundário
-    fcf_yield_pct: Optional[float] = Field(
-        None,
-        ge=0.0,
-        le=100.0,
-        description="FCF yield (%) - específico para secundário"
-    )
-    
-    dividend_recaps: Optional[str] = Field(
-        None,
-        description="Dividend recaps planejados - específico para secundário"
     )
 
 
@@ -595,6 +757,51 @@ class GestoraFacts(BaseModel):
         None,
         description="Filosofia de investimento da gestora"
     )
+    # Campos para Short Memo Co-investimento (Gestora)
+    track_record: Optional[str] = Field(
+        None,
+        description="Track record: Fundo [Nome]: [Ano], AUM, TVPI, DPI, IRR"
+    )
+    principais_exits: Optional[str] = Field(
+        None,
+        description="Principais exits: empresas e múltiplos"
+    )
+    equipe: Optional[str] = Field(
+        None,
+        description="Equipe: Nome, Cargo, Anos experiência, Background"
+    )
+    estrategia_investimento: Optional[str] = Field(
+        None,
+        description="Estratégia de investimento da gestora"
+    )
+    tese_gestora: Optional[str] = Field(
+        None,
+        description="Tese da gestora"
+    )
+    performance_historica: Optional[str] = Field(
+        None,
+        description="Performance histórica (fundos, IRR, MOIC)"
+    )
+    relacionamento_anterior_spectra: Optional[str] = Field(
+        None,
+        description="Relacionamento anterior com a Spectra"
+    )
+
+
+class EstruturaVeiculoFacts(BaseModel):
+    """Schema para seção Estrutura do Veículo de Coinvestimento (Short Memo Gestora)"""
+    model_config = ConfigDict(strict=True)
+
+    duracao_fundo_anos: Optional[int] = Field(None, ge=0, le=30, description="Duração do fundo em anos")
+    capital_autorizado: Optional[str] = Field(None, description="Capital autorizado")
+    taxa_gestao_veiculo_pct: Optional[float] = Field(None, ge=0, le=100, description="Taxa de gestão %")
+    taxa_performance_veiculo_pct: Optional[float] = Field(None, ge=0, le=100, description="Taxa de performance %")
+    hurdle_rate: Optional[str] = Field(None, description="Hurdle rate")
+    catch_up: Optional[str] = Field(None, description="Catch-up: Sim/Não e detalhes")
+    evento_equipe_chave: Optional[str] = Field(None, description="Evento equipe chave - condições")
+    quorum_destituicao_pct: Optional[float] = Field(None, ge=0, le=100, description="Quórum destituição gestor %")
+    chamadas_capital: Optional[str] = Field(None, description="Chamadas de capital - timing e valores")
+    pontos_atencao_regulamento: Optional[str] = Field(None, description="Pontos de atenção do regulamento")
 
 
 class FundoFacts(BaseModel):
@@ -997,54 +1204,6 @@ class BoardCapTableFacts(BaseModel):
     )
 
 
-# ========== SCHEMAS PARA SHORT MEMO - SECUNDÁRIO ==========
-
-class PortfolioSecundarioFacts(BaseModel):
-    """Schema para seção Portfolio Secundário - Dados de portfolio/ativos para transações secundárias"""
-    model_config = ConfigDict(strict=True)
-    
-    nav_data_base: Optional[str] = Field(
-        None,
-        description="Data base do NAV (ex: '30/06/2024', 'Dez/23')"
-    )
-    
-    nav_mm: Optional[float] = Field(
-        None,
-        ge=0.0,
-        description="NAV (Net Asset Value) na data base (milhões)"
-    )
-    
-    desconto_nav_pct: Optional[float] = Field(
-        None,
-        ge=-50.0,
-        le=50.0,
-        description="Desconto sobre NAV (%)"
-    )
-    
-    expectativa_recebimento_mm: Optional[float] = Field(
-        None,
-        ge=0.0,
-        description="Expectativa de recebimento total (milhões)"
-    )
-    
-    numero_fundos: Optional[int] = Field(
-        None,
-        ge=0,
-        description="Número de fundos envolvidos na transação"
-    )
-    
-    numero_ativos: Optional[int] = Field(
-        None,
-        ge=0,
-        description="Número de ativos/empresas no portfolio"
-    )
-    
-    portfolio_commentary: Optional[str] = Field(
-        None,
-        description="Comentários gerais sobre o portfolio e distribuição de ativos"
-    )
-
-
 # Mapa de schemas por seção
 SECTION_SCHEMAS = {
     "identification": IdentificationFacts,
@@ -1059,14 +1218,13 @@ SECTION_SCHEMAS = {
     "fundo": FundoFacts,
     "estrategia": EstrategiaFundoFacts,
     "spectra_context": SpectraContextFacts,
-    # Schemas para secundário
-    "portfolio_secundario": PortfolioSecundarioFacts,
     # Schemas para Memo Completo Search Fund
     "searcher": SearcherFacts,
     "gestor": SearcherFacts,  # Alias para searcher
     "projections_table": ProjectionsTableFacts,
     "returns_table": ReturnsTableFacts,
     "board_cap_table": BoardCapTableFacts,
+    "estrutura_veiculo": EstruturaVeiculoFacts,
 }
 
 

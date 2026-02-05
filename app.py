@@ -22,26 +22,15 @@ from funcoes import (
     move_paragraph_up,
     move_paragraph_down
 )
-from facts import (
-    render_tab_identification,
-    render_tab_transaction,
-    render_tab_financials,
-    render_tab_returns,
-    render_tab_qualitative,
-    render_tab_opinioes,
-    render_tab_gestora,
-    render_tab_fundo,
-    render_tab_estrategia_fundo,
-    render_tab_spectra_context,
-    filter_disabled_facts,
-)
-from facts.tabela.ui import render_dre_table_inputs, fill_dre_table_from_documents
-from facts_config import FIELD_VISIBILITY, get_sections_for_memo_type
+from facts import filter_disabled_facts
+from tipo_memorando.tabela.ui import render_dre_table_inputs, fill_dre_table_from_documents
+from tipo_memorando.tabela.dre_table import DRETableGenerator
+from tipo_memorando.registry import uses_dre_table, get_fatos_config, get_fatos_module
 from core.document_processor import DocumentProcessor
 from core.logger import get_logger
 from core.ui_messages import show_success, show_error, show_warning, show_info
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-from chat.model_config import AVAILABLE_MODELS, get_default_model, get_model_display_name
+from model_config import AVAILABLE_MODELS, get_default_model, get_model_display_name
 import logging
 
 logger = get_logger(__name__)
@@ -175,8 +164,10 @@ st.markdown(
 def apply_auto_uncheck_for_memo_type(memo_type):
     count_unmarked = 0
     count_marked = 0
-    
-    for section, fields in FIELD_VISIBILITY.items():
+    config = get_fatos_config(memo_type)
+    field_visibility = getattr(config, "FIELD_VISIBILITY", {})
+
+    for section, fields in field_visibility.items():
         for field_key, visibility_config in fields.items():
             field_id = f"{section}.{field_key}"
             is_relevant = False
@@ -349,6 +340,9 @@ with st.sidebar:
     if st.button("Adicionar Seção", width='stretch', type="primary", on_click=add_custom_field):
         pass  # on_click já faz rerun automaticamente
 
+    if not st.session_state.custom_fields:
+        st.info("Adicione os documentos para começar")
+    
     if st.session_state.custom_fields:
         st.subheader("Suas Seções:")
 
@@ -415,9 +409,6 @@ with st.sidebar:
                         if st.button("X", key=delete_key, help="Deletar seção"):
                             st.session_state[confirm_key] = field_name
                             st.rerun()
-
-    else:
-        st.info("Adicione uma seção. Clique em 'Adicionar Seção' para começar.")
     
     # Botão de exportação DOCX (sempre visível se há seções)
     if st.session_state.custom_fields:
@@ -632,8 +623,8 @@ if st.session_state.current_page == "home":
                     st.caption(f"{file.name} ({file_size_mb:.1f}MB)")
 
             # Seção de Tabela DRE (apenas configuração quando status idle)
-            # Apenas para Short Memo - Co-investimento (Search Fund)
-            if st.session_state.get("memo_type") == "Short Memo - Co-investimento (Search Fund)":
+            # Para tipos que usam DRE: Short Memo Search Fund, Short Memo Gestora, Memorando Search Fund
+            if uses_dre_table(st.session_state.get("memo_type", "")):
                 if st.session_state.processing_status == "idle":
                     # Mostrar apenas configuração de parâmetros (sem tabela)
                     render_dre_table_inputs(show_table=False)
@@ -641,17 +632,33 @@ if st.session_state.current_page == "home":
                     # Botão aparece apenas se parâmetros foram configurados
                     if st.session_state.dre_table_inputs_confirmed:
                         if st.button("Processar Documentos e Extrair Fatos", type="primary", width='stretch'):
+                            # Persistir arquivos no session state (Streamlit limpa file_uploader no rerun)
+                            st.session_state.pending_upload = [{"name": f.name, "bytes": f.read()} for f in uploaded_files]
                             st.session_state.processing_status = "parsing"
                             st.rerun()
             
-            # Para outros tipos de memo, botão aparece normalmente
-            if (st.session_state.get("memo_type") != "Short Memo - Co-investimento (Search Fund)" and 
+            # Para outros tipos de memo, botão aparece normalmente (quando não usam DRE)
+            if (not uses_dre_table(st.session_state.get("memo_type", "")) and
                 st.session_state.processing_status == "idle"):
                 if st.button("Processar Documentos e Extrair Fatos", type="primary", width='stretch'):
+                    # Persistir arquivos no session state (Streamlit limpa file_uploader no rerun)
+                    st.session_state.pending_upload = [{"name": f.name, "bytes": f.read()} for f in uploaded_files]
                     st.session_state.processing_status = "parsing"
                     st.rerun()
 
             if st.session_state.processing_status == "parsing":
+                # Usar arquivos persistidos se o file_uploader estiver vazio (Streamlit limpa no rerun)
+                if uploaded_files:
+                    files_to_parse = [(f.name, f.read()) for f in uploaded_files]
+                else:
+                    files_to_parse = [(p["name"], p["bytes"]) for p in st.session_state.get("pending_upload", [])]
+                
+                if not files_to_parse:
+                    show_error("Nenhum documento para processar. Faça upload dos arquivos e clique em 'Processar Documentos e Extrair Fatos'.")
+                    st.session_state.processing_status = "idle"
+                    st.session_state.pending_upload = []
+                    st.stop()
+                
                 processor = DocumentProcessor()
                 
                 # Salvar arquivos temporariamente
@@ -663,9 +670,7 @@ if st.session_state.current_page == "home":
                 file_hashes = []
                 cached_results = {}
                 
-                for uploaded_file in uploaded_files:
-                    # Ler conteúdo do arquivo
-                    file_content = uploaded_file.read()
+                for file_name, file_content in files_to_parse:
                     file_hash = get_file_hash(file_content)
                     file_hashes.append(file_hash)
                     
@@ -673,12 +678,12 @@ if st.session_state.current_page == "home":
                     cached_result = load_from_cache(file_hash)
                     if cached_result:
                         cached_results[file_hash] = cached_result
-                        logger.info(f"📦 Usando cache para {uploaded_file.name}")
+                        logger.info(f"📦 Usando cache para {file_name}")
                     else:
                         # Salvar arquivo temporariamente apenas se não estiver em cache
-                        temp_path = temp_dir / uploaded_file.name
+                        temp_path = temp_dir / file_name
                         temp_path.write_bytes(file_content)
-                        temp_paths.append((temp_path, uploaded_file.name, file_hash))
+                        temp_paths.append((temp_path, file_name, file_hash))
                 
                 # Progress bar e status
                 progress_bar = st.progress(0)
@@ -686,19 +691,19 @@ if st.session_state.current_page == "home":
                 
                 # Combinar resultados do cache com arquivos que precisam ser processados
                 # Manter ordem original dos arquivos
-                parsed_results = [None] * len(uploaded_files)  # Lista com tamanho fixo
-                total_files = len(uploaded_files)
+                parsed_results = [None] * len(files_to_parse)  # Lista com tamanho fixo
+                total_files = len(files_to_parse)
                 files_to_process = len(temp_paths)
                 cached_count = len(cached_results)
                 
                 # Preencher resultados do cache nas posições corretas
-                for i, (uploaded_file, file_hash) in enumerate(zip(uploaded_files, file_hashes)):
+                for i, ((file_name, _), file_hash) in enumerate(zip(files_to_parse, file_hashes)):
                     if file_hash in cached_results:
                         cached_result = cached_results[file_hash].copy()
-                        cached_result['filename'] = uploaded_file.name  # Garantir nome correto
+                        cached_result['filename'] = file_name  # Garantir nome correto
                         cached_result['from_cache'] = True
                         parsed_results[i] = cached_result
-                        logger.info(f"✅ [{i+1}/{total_files}] Cache: {uploaded_file.name}")
+                        logger.info(f"✅ [{i+1}/{total_files}] Cache: {file_name}")
                 
                 # Se todos os arquivos estão em cache, pular processamento
                 if files_to_process == 0:
@@ -814,7 +819,7 @@ if st.session_state.current_page == "home":
                         
                         # Preencher resultados processados nas posições corretas
                         result_idx = 0
-                        for i, (uploaded_file, file_hash) in enumerate(zip(uploaded_files, file_hashes)):
+                        for i, ((_fn, _fc), file_hash) in enumerate(zip(files_to_parse, file_hashes)):
                             if file_hash not in cached_results:
                                 # Este arquivo foi processado, usar resultado correspondente
                                 if result_idx < len(new_parsed_results):
@@ -1024,8 +1029,8 @@ if st.session_state.current_page == "home":
                 processor = DocumentProcessor()
                 
                 # Obter número de seções a extrair para mostrar progresso
-                from facts_config import get_sections_for_memo_type
-                sections_to_extract = get_sections_for_memo_type(st.session_state.memo_type)
+                config = get_fatos_config(st.session_state.memo_type)
+                sections_to_extract = config.get_sections_for_memo_type(st.session_state.memo_type)
                 total_sections = len(sections_to_extract)
                 
                 # Atualizar status durante extração (aproximado, já que é paralelo)
@@ -1057,11 +1062,18 @@ if st.session_state.current_page == "home":
                 st.session_state.extracted_facts = extracted
                 st.session_state.facts_edited = {}
                 
-                # Preencher tabela DRE automaticamente se configurada
-                if (st.session_state.get("memo_type") == "Short Memo - Co-investimento (Search Fund)" and
-                    st.session_state.get("dre_table_generator") is not None):
+                # Preencher tabela DRE automaticamente (para tipos que usam DRE)
+                if uses_dre_table(st.session_state.get("memo_type", "")):
                     try:
-                        generator = st.session_state.dre_table_generator
+                        generator = st.session_state.get("dre_table_generator")
+                        if generator is None:
+                            # Criar generator padrão para que a DRE seja preenchida na primeira extração
+                            generator = DRETableGenerator(
+                                ano_referencia=2024,
+                                primeiro_ano_historico=2020,
+                                ultimo_ano_projecao=2031,
+                            )
+                            st.session_state.dre_table_generator = generator
                         generator = fill_dre_table_from_documents(
                             st.session_state.parsed_documents,
                             generator
@@ -1231,10 +1243,11 @@ if st.session_state.current_page == "home":
                     st.session_state.processing_status = "idle"
                     st.session_state.parsed_documents = []
                     st.session_state.document_embeddings = None
+                    st.session_state.pending_upload = []
                     st.rerun()
 
-    # Exibir tabela DRE após processamento completo (status ready)
-    if (st.session_state.get("memo_type") == "Short Memo - Co-investimento (Search Fund)" and
+    # Exibir tabela DRE após processamento completo (status ready) - para tipos que usam DRE
+    if (uses_dre_table(st.session_state.get("memo_type", "")) and
         st.session_state.get("processing_status") == "ready" and
         st.session_state.get("dre_table_generator") is not None):
         render_dre_table_inputs(show_table=True)
@@ -1248,55 +1261,81 @@ Os box selecionados são preenchidos automaticamente. Os boxes não selecionados
 Caso a informação não tenha sido encontrada insira o valor diretamente (ex: 15%) ou desabilite o box.
 """
 )
-        # Tabs diferentes para Short Memo - Primário (investimento em fundos)
+        fatos_mod = get_fatos_module(st.session_state.memo_type)
+        # Short Memo - Primário (investimento em fundos)
         if st.session_state.memo_type == "Short Memo - Primário":
             tab1, tab2, tab3, tab4, tab5 = st.tabs([
                 "Gestora",
-                "Fundo", 
+                "Fundo",
                 "Estratégia",
                 "Contexto Spectra",
                 "Opiniões"
             ])
-            
+
             with tab1:
-                render_tab_gestora(st.session_state.memo_type)
-            
-            with tab2:
-                render_tab_fundo(st.session_state.memo_type)
-            
-            with tab3:
-                render_tab_estrategia_fundo(st.session_state.memo_type)
-            
-            with tab4:
-                render_tab_spectra_context(st.session_state.memo_type)
-            
-            with tab5:
-                render_tab_opinioes(st.session_state.memo_type)
-        
-        else:
-            # Tabs padrão para outros tipos de memo
-            tab1, tab2, tab3, tab4, tab5 = st.tabs([
-                "Identificação", 
-                "Transação", 
-                "Financials e Projeções", 
-                "Retornos",
-                "Qualitativo"
-            ])
-            
-            with tab1:
-                render_tab_identification(st.session_state.memo_type)
+                fatos_mod.render_tab_gestora(st.session_state.memo_type)
 
             with tab2:
-                render_tab_transaction(st.session_state.memo_type)
-            
+                fatos_mod.render_tab_fundo(st.session_state.memo_type)
+
             with tab3:
-                render_tab_financials(st.session_state.memo_type)
-            
+                fatos_mod.render_tab_estrategia_fundo(st.session_state.memo_type)
+
             with tab4:
-                render_tab_returns(st.session_state.memo_type)
-            
+                fatos_mod.render_tab_spectra_context(st.session_state.memo_type)
+
             with tab5:
-                render_tab_qualitative(st.session_state.memo_type)
+                fatos_mod.render_tab_opinioes(st.session_state.memo_type)
+
+        elif st.session_state.memo_type == "Short Memo - Co-investimento (Gestora)":
+            # Short Memo Co-investimento Gestora: 6 abas
+            tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+                "Identificação",
+                "Gestora",
+                "Transação",
+                "Saída",
+                "Estrutura do Veículo",
+                "Opinião do Analista"
+            ])
+
+            with tab1:
+                fatos_mod.render_tab_identification(st.session_state.memo_type)
+
+            with tab2:
+                fatos_mod.render_tab_gestora(st.session_state.memo_type)
+
+            with tab3:
+                fatos_mod.render_tab_transaction(st.session_state.memo_type)
+
+            with tab4:
+                fatos_mod.render_tab_saida(st.session_state.memo_type)
+
+            with tab5:
+                fatos_mod.render_tab_estrutura_veiculo(st.session_state.memo_type)
+
+            with tab6:
+                fatos_mod.render_tab_opinioes(st.session_state.memo_type)
+
+        else:
+            # Tabs padrão (Short Search Fund, Memo Search Fund): Identificação, Transação, Saída, Qualitativo
+            tab1, tab2, tab3, tab4 = st.tabs([
+                "Identificação",
+                "Transação",
+                "Saída",
+                "Qualitativo"
+            ])
+
+            with tab1:
+                fatos_mod.render_tab_identification(st.session_state.memo_type)
+
+            with tab2:
+                fatos_mod.render_tab_transaction(st.session_state.memo_type)
+
+            with tab3:
+                fatos_mod.render_tab_saida(st.session_state.memo_type)
+
+            with tab4:
+                fatos_mod.render_tab_qualitative(st.session_state.memo_type)
     
     # SEÇÃO: GERAR MEMORANDO PROFISSIONAL COM IA
     if st.session_state.processing_status == "ready":
@@ -1365,7 +1404,10 @@ Caso a informação não tenha sido encontrada insira o valor diretamente (ex: 1
                             st.session_state.facts_edited,
                             st.session_state.disabled_facts
                         )
-                        
+                        # Incluir tabela DRE (Visualização da Tabela) para a IA usar em Histórico/Projeções (apenas para tipos que usam DRE)
+                        if uses_dre_table(st.session_state.get("memo_type", "")) and st.session_state.get("dre_table_generator") is not None:
+                            filtered_facts["dre_table"] = st.session_state.dre_table_generator.to_dict()
+
                         # Obter memo_id e processor para busca RAG no ChromaDB (se disponível)
                         memo_id = None
                         processor = None
@@ -1376,7 +1418,7 @@ Caso a informação não tenha sido encontrada insira o valor diretamente (ex: 1
                         
                         # ===== SEARCH FUND: Usa orchestrator especializado com estrutura fixa =====
                         if memo_type == "Short Memo - Co-investimento (Search Fund)":
-                            from shortmemo.searchfund.orchestrator import generate_full_memo
+                            from tipo_memorando.short_searchfund.orchestrator import generate_full_memo
                             
                             # Gerar todas as seções com a estrutura fixa do Search Fund
                             memo_sections = generate_full_memo(
@@ -1395,7 +1437,7 @@ Caso a informação não tenha sido encontrada insira o valor diretamente (ex: 1
                         
                         # ===== MEMO COMPLETO SEARCH FUND: Usa orchestrator completo com 9 seções =====
                         elif memo_type == "Memorando - Co-investimento (Search Fund)":
-                            from memo.searchfund.orchestrator import generate_full_memo
+                            from tipo_memorando.memo_searchfund.orchestrator import generate_full_memo
                             
                             # Gerar todas as 9 seções com a estrutura fixa do Memo Completo
                             memo_sections = generate_full_memo(
@@ -1414,7 +1456,7 @@ Caso a informação não tenha sido encontrada insira o valor diretamente (ex: 1
                         
                         # ===== GESTORA: Usa orchestrator especializado com estrutura fixa =====
                         elif memo_type == "Short Memo - Co-investimento (Gestora)":
-                            from shortmemo.gestora.orchestrator import generate_full_memo
+                            from tipo_memorando.short_gestora.orchestrator import generate_full_memo
                             
                             # Gerar todas as seções com a estrutura fixa da Gestora
                             memo_sections = generate_full_memo(
@@ -1433,28 +1475,9 @@ Caso a informação não tenha sido encontrada insira o valor diretamente (ex: 1
                         
                         # ===== PRIMÁRIO: Usa orchestrator especializado com estrutura fixa =====
                         elif memo_type == "Short Memo - Primário":
-                            from shortmemo.primario.orchestrator import generate_full_memo
+                            from tipo_memorando.short_primario.orchestrator import generate_full_memo
                             
                             # Gerar todas as seções com a estrutura fixa do Primário
-                            memo_sections = generate_full_memo(
-                                facts=filtered_facts,
-                                rag_context=None,  # Deprecated - usar memo_id/processor se disponível
-                                memo_id=memo_id,
-                                processor=processor,
-                                model=st.session_state.selected_model,
-                                temperature=temperature
-                            )
-                            
-                            # Converter para formato esperado pelo app
-                            q, e = _convert_memo_sections_to_format(memo_sections, generated)
-                            total_quality += q
-                            total_examples += e
-                        
-                        # ===== SECUNDÁRIO: Usa orchestrator especializado com estrutura fixa =====
-                        elif memo_type == "Short Memo - Secundário":
-                            from shortmemo.secundario.orchestrator import generate_full_memo
-                            
-                            # Gerar todas as seções com a estrutura fixa do Secundário
                             memo_sections = generate_full_memo(
                                 facts=filtered_facts,
                                 rag_context=None,  # Deprecated - usar memo_id/processor se disponível
@@ -1484,7 +1507,9 @@ Caso a informação não tenha sido encontrada insira o valor diretamente (ex: 1
                             for fact_key, config in SECTION_MAPPING.items():
                                 section_title = config["title"]
                                 section_facts = filtered_facts.get(fact_key, {})
-                                
+                                # Histórico Financeiro: enriquecer com tabela DRE (json da Visualização da Tabela)
+                                if fact_key == "financials_history" and "dre_table" in filtered_facts:
+                                    section_facts = {**section_facts, "dre_table": filtered_facts["dre_table"]}
                                 if section_facts:  # Só gerar se tiver facts
                                     result = orchestrator.generate_section_sync(
                                         section_name=section_title,

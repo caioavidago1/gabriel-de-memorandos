@@ -383,8 +383,6 @@ class MemoHistoryManager:
             tags.append("Primário")
         elif "Search Fund" in memo_type or "searchfund" in memo_type.lower():
             tags.append("Search Fund")
-        elif "Secundário" in memo_type or "secundario" in memo_type.lower():
-            tags.append("Secundário")
         elif "Gestora" in memo_type:
             tags.append("Gestora")
         

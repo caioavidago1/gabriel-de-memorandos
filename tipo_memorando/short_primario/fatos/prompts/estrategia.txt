@@ -1,0 +1,44 @@
+Extraia informações da ESTRATÉGIA DE INVESTIMENTO do fundo:
+
+CAMPOS OBRIGATÓRIOS (campos do schema):
+
+**Foco de Investimento:**
+- estrategia_tese: Tese de investimento do fundo (texto)
+- estrategia_setores: Setores prioritários (texto, ex: "SaaS B2B, Fintech, Healthtech")
+- estrategia_geografia: Geografias de atuação (texto, ex: "Brasil", "LATAM", "US/Brazil")
+- estrategia_estagio: Estágio de investimento (texto, ex: "early stage", "growth", "buyout")
+
+**Parâmetros de Investimento:**
+- estrategia_ticket_min_mm: Ticket mínimo por investimento (APENAS NÚMERO decimal em MM da moeda do fundo)
+- estrategia_ticket_max_mm: Ticket máximo por investimento (APENAS NÚMERO decimal em MM)
+- estrategia_ticket_medio_mm: Ticket médio por investimento (APENAS NÚMERO decimal em MM)
+- estrategia_numero_ativos_alvo: Número target de investimentos no portfólio (APENAS NÚMERO inteiro)
+- estrategia_num_investments_target: Alias para numero_ativos_alvo (APENAS NÚMERO inteiro)
+- estrategia_tipo_participacao: Tipo de participação (texto, ex: "Minoritária", "Controle", "Flexível")
+- estrategia_alocacao: Estratégia de alocação do fundo (texto)
+
+**Diferenciação:**
+- estrategia_diferenciacao: Diferenciação da estratégia vs peers (texto)
+  * Incluir: value proposition, vantagens competitivas, deal sourcing, modelo de atuação quando mencionados
+
+INSTRUÇÕES:
+1. Busque em seções: investment strategy, thesis, value creation, portfolio construction
+2. Foco setorial: capturar todas as verticais mencionadas
+3. Diferenciação: incluir value add, network, expertise, deal sourcing, critérios de investimento quando mencionados
+4. Se um campo não for encontrado, retorne null
+5. Diferenciar entre "aspiracional" e "realizado" (priorizar o target/guideline)
+
+FORMATO CRÍTICO:
+- Valores monetários: APENAS números decimais (ex: 10.0, não "10M" ou "US$ 10M")
+- Contagens: APENAS números inteiros (ex: 20, não "20 investimentos")
+- Use null para campos não encontrados
+
+EXEMPLOS:
+- estrategia_tese: "Growth Equity focado em empresas de tecnologia B2B em estágio de crescimento no Brasil e LATAM"
+- estrategia_setores: "SaaS B2B, Fintech, Vertical Software"
+- estrategia_geografia: "Brasil e LATAM (80%), US (20%)"
+- estrategia_ticket_min_mm: 10.0
+- estrategia_ticket_max_mm: 30.0
+- estrategia_num_investments_target: 20
+- estrategia_tipo_participacao: "Minoritária"
+- estrategia_diferenciacao: "Go-to-market expertise, C-level hiring, expansion para US/LATAM, M&A buy-and-build. Únicos com presença em BR e US, 20+ portfolio companies como referências."

@@ -1,0 +1,32 @@
+Extraia informações de OPINIÕES DA EQUIPE SPECTRA:
+
+Os campos abaixo são os que o sistema utiliza. Extraia quando houver informações em documentos internos ou memos já escritos. Em pitch decks externos, a maioria retornará null.
+
+CAMPOS DO SCHEMA (extrair com estes nomes exatos):
+
+**Recomendação e posição:**
+- spectra_recommendation: Recomendação final (texto: aprovar, rejeitar, aprofundar diligência, watch list, valor de commitment em MM se investir)
+- investment_rationale: Racional de investimento da Spectra (texto, 2-4 frases)
+- next_steps: Próximos passos recomendados (texto)
+
+**Análise qualitativa:**
+- key_strengths: Principais pontos positivos identificados pela Spectra (texto)
+- key_concerns: Principais preocupações identificadas (texto)
+
+**Opinião sobre fundadores/empresa (especialmente para Primário / Search Fund):**
+- founders_opinion: Opinião sobre os fundadores/empreendedores (texto)
+- founders_track_record: Histórico e track record dos fundadores (texto)
+- founders_comparison: Comparação dos fundadores com outros empreendedores do portfólio (texto)
+- company_positioning_opinion: Opinião sobre o posicionamento da empresa no mercado (texto)
+- market_reputation: Reputação da empresa no mercado (texto)
+
+INSTRUÇÕES:
+1. Estas informações são INTERNAS - devem vir de documentos/notas da equipe Spectra
+2. Em pitch decks externos, todos os campos retornarão null
+3. Respostas devem ser OBJETIVAS e ACTIONABLE (não genéricas)
+4. Se há preocupações, explicitar claramente (não ser evasivo)
+5. Recomendação deve ter posição CLARA (sim/não/talvez com condições)
+6. Use null para campos não encontrados
+
+FORMATO:
+Cada campo deve conter texto completo (não apenas keywords). Use os nomes de campo exatamente como listados acima.
